@@ -1,0 +1,50 @@
+version: '3.8'
+services:
+  scribe_data:
+    image: mariadb:latest
+    restart: unless-stopped
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    volumes:
+      - scribe_data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=BBBBBBBBBB
+      - MYSQL_PASSWORD=BBBBBBBBBB
+      - MYSQL_DATABASE=EEEEEEEEEE
+      - MYSQL_USER=AAAAAAAAAA
+    networks:
+      - scribe_int_network
+  scribe_app:
+    # image: bruh/scribe:latest
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: scribe_app
+    environment:
+      - BRUH=bruh # Don't question it
+    volumes:
+      - scribe_persist:/app/CONFIG
+      - scribe_logs:/app/LOGS
+    ports:
+      - "98:80" # Map port 98 on host to 80 in container (HTTP)
+    links:
+      - scribe_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/healthcheck.html"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - scribe_int_network
+networks:
+  scribe_int_network:
+    external: false
+    name: "scribe_int_network"
+volumes:
+  scribe_persist:
+    driver: local
+  scribe_logs:
+    driver: local
+  scribe_data:
+    driver: local
