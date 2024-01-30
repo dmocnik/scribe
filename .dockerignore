@@ -1,0 +1,45 @@
+# Version Control System
+.git/
+
+# Development Environment Files
+.vscode/
+
+# Log Files
+*.log
+
+# Operating System Generated Files
+.DS_Store
+Thumbs.db
+
+# Test and Build Files
+*.test.js
+*.build.js
+
+# Python Cache Files
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Docker Files
+docker-compose.yaml
+Dockerfile
+
+# Environment Files
+*.env
+
+# Temporary Files
+*.temp
+*.swp
+
+# Documentation and License
+LICENSE
+README.md
+
+# Configuration Files
+.gitignore
+
+# Directories not needed in the Docker image
+BUILD/
+CONFIG/
+DOCS/
