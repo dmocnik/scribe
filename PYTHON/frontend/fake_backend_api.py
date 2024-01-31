@@ -2,7 +2,9 @@ import random
 
 users = {
     'dan': 'password',
-    'notdan': 'notpassword'
+    'notdan': 'notpassword',
+    'ora': 'ilovemoney',
+    'meme': '1234'
 }
 
 def login(data):
