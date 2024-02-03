@@ -6,8 +6,8 @@ def setup_swagger(app, config):
 
     # Get swagger blueprint
     swaggerui_blueprint = get_swaggerui_blueprint(
-        config.SWAGGER_URL,
-        config.API_URL,
+        config["SWAGGER_URL"],
+        config["API_URL"],
         config=swagger_config
     )
 

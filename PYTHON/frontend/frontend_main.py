@@ -1,8 +1,12 @@
 from nicegui import ui, app
 from fastapi.responses import RedirectResponse
 from middleware import ScribeAuthMiddleware
+import requests
 
-import fake_backend_api
+from config import DevelopmentConfig as config
+
+API_URL = config.API_URL
+LOGIN_URL = f'{API_URL}/login'
 
 app.add_middleware(ScribeAuthMiddleware)
 
@@ -20,22 +24,31 @@ def bruh():
 
 @ui.page('/login')
 def login(logout: bool = False):
+
     def try_login():
         username = username_input.value
         password = password_input.value
-        res = fake_backend_api.login({'username': username, 'password': password})
-        status_code, data = res
-        if status_code == 200:
+
+        # response object, pass login url, post body, and cookies from app storage
+        res = requests.post(LOGIN_URL, 
+                            json={"email": username, "password": password}, 
+                            headers={"Cookie": f"{app.storage.user.get('cookie')}"})
+
+        if res.status_code == 200:
+
+            # get cookie from response header
+            cookie = res.headers['Set-Cookie'].split(';')[0]
+            
             app.storage.user.update({'username': username_input.value,
                                      'authenticated': True,
-                                     'token': data['token']})
+                                     'cookie': cookie})
             path = app.storage.user.get('referrer_path', '/')
             path = path + '?user=' + username
             ui.open(path)
-        elif status_code == 401:
+        elif res.status_code == 400:
             ui.notify('Invalid username or password', position='top-right', close_button=True, type='negative')
         else:
-            ui.notify('An error occurred', position='top-right', close_button=True, type='negative')
+            ui.notify(res.reason, position='top-right', close_button=True, type='negative')
 
     if app.storage.user.get('authenticated', False):
         return RedirectResponse('/')

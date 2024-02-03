@@ -162,5 +162,8 @@ cython_debug/
 # Prevent upload of logs
 *.log
 
-#NiceGUI Storage
+# NiceGUI Storage
 .nicegui/
+
+# Flask session storage
+flask_session/
