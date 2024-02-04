@@ -59,6 +59,7 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 ```bash
 sudo apt-get install python3 python3-pip
 ```
+- Remember: There are a lot of `.env.example` files in our project! Make sure to rename them to `.env` and fill in the necessary environment variables.
 
 ## About the Developers
 Info will be added soon!
