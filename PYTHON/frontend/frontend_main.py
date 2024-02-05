@@ -6,20 +6,34 @@ import fake_backend_api
 
 app.add_middleware(ScribeAuthMiddleware)
 
+async def check_notifications():
+    notifications = app.storage.user.pop('notifications', None)
+    if notifications == 'login':
+        ui.notify(f'Hello, {app.storage.user.get("username")}!', position='top-right', close_button=True, type='positive')
+    if notifications == 'logout':
+        ui.notify('Successfully logged out!', position='top-right', close_button=True, type='positive')
+    pass
+
+async def logout():
+    app.storage.user.clear()
+    app.storage.user.update({'notifications': 'logout'})
+    ui.open('/login')
+
 @ui.page('/')
-def index(user: str = None):
-    if user:
-        ui.notify(f'Hello, {user}!', position='top-right', close_button=True, type='positive')
+async def index():
+    await check_notifications()
     ui.label('This is an example main page. You should only be able to see it if you are logged in.')
     ui.label(f'You are logged in as: {app.storage.user.get("username")}')
-    ui.button('Sign out', on_click=lambda: (app.storage.user.clear(), ui.open('/login?logout=True')), icon='logout')
+    ui.button('Sign out', on_click=lambda: logout(), icon='logout')
 
 @ui.page('/bruh')
-def bruh():
+async def bruh():
+    await check_notifications()
     ui.image('https://www.oakland.edu/Assets/Oakland/president/graphics/headshots/oraheadshot.jpg')
 
 @ui.page('/login')
-def login(logout: bool = False):
+async def login():
+    await check_notifications()
     def try_login():
         username = username_input.value
         password = password_input.value
@@ -29,8 +43,8 @@ def login(logout: bool = False):
             app.storage.user.update({'username': username_input.value,
                                      'authenticated': True,
                                      'token': data['token']})
+            app.storage.user['notifications'] = 'login'
             path = app.storage.user.get('referrer_path', '/')
-            path = path + '?user=' + username
             ui.open(path)
         elif status_code == 401:
             ui.notify('Invalid username or password', position='top-right', close_button=True, type='negative')
@@ -40,9 +54,6 @@ def login(logout: bool = False):
     if app.storage.user.get('authenticated', False):
         return RedirectResponse('/')
     
-    if logout:
-        ui.notify('Logged out', position='top-right', close_button=True, type='positive')
-
     ui.query('body').style('background-image: url("https://w.wallhaven.cc/full/m9/wallhaven-m965vm.jpg")')
     ui.query('.nicegui-content').classes('p-0')
     #ui.header(elevated=True, add_scroll_padding=False, fixed=False)
