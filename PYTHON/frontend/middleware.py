@@ -3,7 +3,8 @@ from fastapi.responses import RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from nicegui import app, Client
 
-unrestricted_page_routes = {'/login'}
+unrestricted_page_routes = {'/login',
+                            '/verify-account'}
 
 class ScribeAuthMiddleware(BaseHTTPMiddleware):
 
