@@ -4,11 +4,7 @@ from .pages.login import account
 from flask_cors import CORS
 from flask import Flask, session
 from flask_session import Session
-
-from flask import request, current_app
-import sqlalchemy
-from .models import User
-
+import json
 
 app = Flask(__name__)
 app.config.from_object(DevelopmentConfig)
@@ -19,8 +15,15 @@ Session(app)
 # setup swagger
 setup_swagger(app, app.config)
 
-# add routes
+# add account routes
 app.register_blueprint(account)
+
+# add get swagger.json
+@app.get('/swagger.json')
+def get_swagger():
+    with open('./swagger/swagger.json') as f:
+        data = json.load(f)
+        return data
 
 # test session headers and whatnot
 @app.route('/set/')
@@ -33,3 +36,8 @@ def set():
 @app.route('/get/')
 def get():
     return session.get('key', 'not set')
+
+# healthcheck to test if api is running
+@app.route('/healthcheck')
+def healthcheck():
+    return 'ok'
