@@ -20,7 +20,15 @@
           },
           "responses": {
             "200": {
-              "description": "OK"
+              "description": "OK",
+              "headers": {
+                "Set-Cookie": {
+                  "description": "Authentication cookie",
+                  "schema": {
+                    "type": "string"
+                  }
+                }
+              }
             },
             "401": {
               "description": "Unauthorized"
@@ -111,6 +119,11 @@
       "/password/update": {
         "post": {
           "summary": "Update password",
+          "security": [
+            {
+              "cookieAuth": []
+            }
+          ],
           "requestBody": {
             "content": {
               "application/json": {
@@ -210,7 +223,14 @@
         }
       }
     },
-    "components": {
+    "components": { 
+      "securitySchemes": {
+        "cookieAuth": {
+          "type": "apiKey",
+          "in": "cookie",
+          "name": "cookie"
+        }
+      },
       "schemas": {
         "LoginRequest": {
           "type": "object",

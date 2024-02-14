@@ -2,7 +2,7 @@ class Config(object):
     TESTING = False
 
 class DevelopmentConfig(Config):
-    DATABASE_URI = "mariadb+mariadbconnector://rob@localhost:3306/test"
+    DATABASE_URI = "mariadb+mariadbconnector://rob@localhost:3306/scribe"
     API_URL = 'http://localhost:5000/swagger.json'
     SWAGGER_URL = '/api/docs'
 

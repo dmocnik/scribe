@@ -1,3 +1,4 @@
 swagger_config = {
-    'app_name': 'Test App'
+    'app_name': 'Test App',
+    'persistAuthorization': True
 }
