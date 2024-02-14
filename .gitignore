@@ -162,4 +162,13 @@ cython_debug/
 # Prevent upload of logs
 *.log
 
+# NiceGUI Storage
+.nicegui/
+
+# Dan's VS Code Settings
+.vscode/settings.json
+
+# Flask session storage
+flask_session/
+
 *.env
