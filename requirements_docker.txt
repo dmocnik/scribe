@@ -1,5 +1,4 @@
 Flask
-mariadb
 SQLAlchemy
 rich
 python-dotenv

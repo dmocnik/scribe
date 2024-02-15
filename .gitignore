@@ -172,3 +172,5 @@ cython_debug/
 flask_session/
 
 *.env
+
+.nicegui

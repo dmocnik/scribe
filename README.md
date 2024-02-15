@@ -10,6 +10,8 @@
 
 ### More documentation coming soon!
 
+### Make sure to check out Docker documentation in `DOCS` directory (as well as SMTP class info)!
+
 ## Features
 - Compiled Docker image for easy deployment
 - Tested with Python 3.10
@@ -93,6 +95,18 @@ Add this to the end of your (non-root) .bashrc file to invoke mariadb commands:
 
 ```sh
 export PATH="/usr/local/mysql/bin:$PATH"
+```
+
+### Run Components Locally
+
+#### Run Flask Backend
+```bash
+python3 -m PYTHON.api.app
+```
+
+#### Run NiceGUI Frontend
+```bash
+python3 ./PYTHON/frontend/frontend_main.py
 ```
 
 ## About the Developers
