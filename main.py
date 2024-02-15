@@ -42,7 +42,10 @@ maindirectory = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 
 # [ OPTIONS ]
 FRONTEND_PATH = "PYTHON.api.app"
+FRONTEND_LAUNCH = ['python3', '-m', 'flask', '--app', f'{FRONTEND_PATH}', 'run', '--host=0.0.0.0']
+
 BACKEND_PATH = os.path.join(maindirectory, "PYTHON", "api", "app.py")
+BACKEND_LAUNCH = ['python3', BACKEND_PATH]
 
 # Custom low-level functions
 def print(text="", log_filename="", end="\n", max_file_mb=10):
@@ -148,9 +151,9 @@ if __name__ == "__main__":
     if opts_dict.get("webserver", False):
         print("[gold1][INFO][/gold1]: webserver enabled, running webserver...")
         # Run the backend by invoking Flask app in ./PYTHON/api/app.py using subprocess
-        backend_process = subprocess.Popen(["python3", BACKEND_PATH], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        backend_process = subprocess.Popen(BACKEND_LAUNCH, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # Run the frontend by invoking NiceGUI in ./PYTHON/frontend/frontend_main.py using subprocess
-        frontend_process = subprocess.Popen(["python3", "-m", FRONTEND_PATH], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        frontend_process = subprocess.Popen(FRONTEND_LAUNCH, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # Periodically display the output of the subprocesses
         while True:
             try:

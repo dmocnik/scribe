@@ -57,6 +57,23 @@ sudo apt-get update
 # Install Docker Engine:
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
+
+### Setup
+- Clone the repository to your local machine
+```bash
+git clone https://github.com/PhysCorp/scribe.git
+```
+- Change directory to the project root
+```bash
+cd scribe
+```
+- Run the following commands to build and run the Docker image
+```bash
+sudo docker-compose build --no-cache
+sudo docker-compose up
+```
+- It will take a few minutes to build the image and run the container. Once it's done, you can access the application at `http://localhost:98` in your web browser. The default port is 98, but you can change it in the `docker-compose.yaml` file.
+
 - If you will be running from source, make sure you have the following packages installed (adjust package manager according to your distro):
 ```bash
 sudo apt-get install python3 python3-pip
@@ -99,12 +116,14 @@ export PATH="/usr/local/mysql/bin:$PATH"
 
 ### Run Components Locally
 
-#### Run Flask Backend
+#### Run Flask Backend (Port 5000)
 ```bash
-python3 -m PYTHON.api.app
+python3 -m flask --app PYTHON.api.app run
+# OR
+Flask --app PYTHON.api.app run
 ```
 
-#### Run NiceGUI Frontend
+#### Run NiceGUI Frontend (Port 8080)
 ```bash
 python3 ./PYTHON/frontend/frontend_main.py
 ```
