@@ -196,4 +196,4 @@ async def verify_account():
                     on_click=lambda: (ui.notify('Code sent!', position='top-right', close_button=True, type='positive'),
                                       resend_btn.props('disabled')))
 
-ui.run(dark=True, title='Scribe', favicon='📝', storage_secret='this_is_a_secret')
+ui.run(dark=True, title='Scribe', favicon='📝', storage_secret='this_is_a_secret', host='0.0.0.0', port=5000, show=False)

@@ -13,7 +13,7 @@ try:
     install() # Install traceback
 except ImportError as e:
     print("[INFO] You are missing one or more libraries. Please use PIP to install any missing ones.")
-    print("Try running `python3 -m pip install -r ../../requirements.txt`")
+    print("Try running `python3 -m pip install -r ../../requirements.txt` OR `pip install -r ../../requirements.txt`.")
     print(f"Traceback: {e}")
     quit()
 
