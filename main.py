@@ -27,7 +27,7 @@
 
 # Attempt to import all necessary libraries
 try:
-    import os, time, sys, subprocess # General
+    import os, time, sys, subprocess, collections # General
     from rich import print as rich_print # Pretty print
     from rich.traceback import install # Pretty traceback
     install() # Install traceback
@@ -41,11 +41,11 @@ except ImportError as e:
 maindirectory = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 
 # [ OPTIONS ]
-FRONTEND_PATH = "PYTHON.api.app"
-FRONTEND_LAUNCH = ['python3', '-m', 'flask', '--app', f'{FRONTEND_PATH}', 'run', '--host=0.0.0.0']
+BACKEND_PATH = "PYTHON.api.app"
+BACKEND_LAUNCH = ['python3', '-m', 'flask', '--app', f'{BACKEND_PATH}', 'run', '--host=0.0.0.0']
 
-BACKEND_PATH = os.path.join(maindirectory, "PYTHON", "api", "app.py")
-BACKEND_LAUNCH = ['python3', BACKEND_PATH]
+FRONTEND_PATH = os.path.join(maindirectory, "PYTHON", "frontend", "frontend_main.py")
+FRONTEND_LAUNCH = ['python3', FRONTEND_PATH]
 
 # Custom low-level functions
 def print(text="", log_filename="", end="\n", max_file_mb=10):
@@ -71,6 +71,12 @@ def print(text="", log_filename="", end="\n", max_file_mb=10):
         rich_print(f"[red][ERROR][/red]: {e}")
         rich_print(f"[red][ERROR][/red]: Could not write to log file at {log_file_path}.")
     rich_print(text, end=end)
+
+def tail(file, n):
+    lines = collections.deque(maxlen=n)
+    for line in file:
+        lines.append(line)
+    return lines
 
 # [ MAIN ]
 if __name__ == "__main__":
@@ -151,9 +157,9 @@ if __name__ == "__main__":
     if opts_dict.get("webserver", False):
         print("[gold1][INFO][/gold1]: webserver enabled, running webserver...")
         # Run the backend by invoking Flask app in ./PYTHON/api/app.py using subprocess
-        backend_process = subprocess.Popen(BACKEND_LAUNCH, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        backend_process = subprocess.Popen(BACKEND_LAUNCH)
         # Run the frontend by invoking NiceGUI in ./PYTHON/frontend/frontend_main.py using subprocess
-        frontend_process = subprocess.Popen(FRONTEND_LAUNCH, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        frontend_process = subprocess.Popen(FRONTEND_LAUNCH)
         # Periodically display the output of the subprocesses
         while True:
             try:
@@ -164,11 +170,7 @@ if __name__ == "__main__":
                 if frontend_process.poll() is not None:
                     print("[red][ERROR][/red]: Frontend process has stopped running. Exiting...")
                     quit()
-                # Print the output of the processes
-                print('===' * 20, log_filename="check-in.log")
-                print(f"[gold1][INFO][/gold1]: Check-in on Flask: {backend_process.stdout.read()}", log_filename="check-in.log")
-                print(f"[gold1][INFO][/gold1]: Check-in on NiceGUI: {frontend_process.stdout.read()}", log_filename="check-in.log")
-                print('===' * 20, log_filename="check-in.log")
+                print(f"[gold1][INFO][/gold1]: Heartbeat check-in. Sleeping for 60 seconds...")
                 time.sleep(60)
             except KeyboardInterrupt:
                 print("[gold1][INFO][/gold1]: Keyboard interrupt detected, exiting webserver cleanly...")

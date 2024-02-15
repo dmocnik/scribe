@@ -8,6 +8,13 @@ RUN apt-get update && \
     wget \
     unzip \
     nano \
+    curl \
+    libmariadb-dev \
+    git \
+    gcc \
+    make \
+    cmake \
+    libssl-dev \
     && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
