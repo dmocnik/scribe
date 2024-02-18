@@ -8,6 +8,13 @@ RUN apt-get update && \
     wget \
     unzip \
     nano \
+    curl \
+    libmariadb-dev \
+    git \
+    gcc \
+    make \
+    cmake \
+    libssl-dev \
     && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -18,8 +25,9 @@ LABEL org.opencontainers.image.title="Scribe"
 LABEL org.opencontainers.image.description="Upload and transcribe videos using AI, then convert to a note doc!"
 LABEL org.opencontainers.image.source="https://github.com/PhysCorp/scribe"
 LABEL org.opencontainers.image.licenses="MIT"
-LABEL org.opencontainers.image.version="2024.1.30.0"
+LABEL org.opencontainers.image.version="2024.2.4.0"
 
-EXPOSE 80
+EXPOSE 5000
+EXPOSE 8080
 
 CMD ["python3", "main.py", "webserver=True"]

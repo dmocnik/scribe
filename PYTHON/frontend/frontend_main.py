@@ -2,8 +2,12 @@ from nicegui import ui, app
 from fastapi.responses import RedirectResponse
 from middleware import ScribeAuthMiddleware
 import re
+import requests
 
-import fake_backend_api
+from config import DevelopmentConfig as config
+
+API_URL = config.API_URL
+LOGIN_URL = f'{API_URL}/login'
 
 # TODO
 # Make it react to screen size changes better
@@ -45,16 +49,24 @@ async def login():
         sign_in_btn.props('loading')
         username = username_input.value
         password = password_input.value
-        res = fake_backend_api.login({'username': username, 'password': password})
-        status_code, data = res
-        if status_code == 200:
+
+        # response object, pass login url, post body, and cookies from app storage
+        res = requests.post(LOGIN_URL, 
+                            json={"email": username, "password": password}, 
+                            headers={"Cookie": f"{app.storage.user.get('cookie')}"})
+
+        if res.status_code == 200:
+
+            # get cookie from response header
+            cookie = res.headers['Set-Cookie'].split(';')[0]
+            
             app.storage.user.update({'username': username_input.value,
                                      'authenticated': True,
-                                     'token': data['token']})
+                                     'cookie': cookie})
             app.storage.user['notifications'] = 'login'
             path = app.storage.user.get('referrer_path', '/')
             ui.open(path)
-        elif status_code == 401:
+        elif res.status_code == 400:
             ui.notify('Invalid username or password', position='top-right', close_button=True, type='negative')
         else:
             ui.notify('An error occurred', position='top-right', close_button=True, type='negative')
@@ -184,4 +196,4 @@ async def verify_account():
                     on_click=lambda: (ui.notify('Code sent!', position='top-right', close_button=True, type='positive'),
                                       resend_btn.props('disabled')))
 
-ui.run(dark=True, title='Scribe', favicon='📝', storage_secret='this_is_a_secret')
+ui.run(dark=True, title='Scribe', favicon='📝', storage_secret='this_is_a_secret', host='0.0.0.0', port=8080, show=False)

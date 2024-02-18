@@ -24,22 +24,28 @@
 # main.py: The main file that runs the program
 # api directory: Contains the API for this software
 # PYTHON directory: Other misc python files (maybe move API here?)
-# TODO: Revise python structure?
 
 # Attempt to import all necessary libraries
 try:
-    import os, time, sys # General
+    import os, time, sys, subprocess, collections # General
     from rich import print as rich_print # Pretty print
     from rich.traceback import install # Pretty traceback
     install() # Install traceback
 except ImportError as e:
     print("[INFO] You are missing one or more libraries. Please use PIP to install any missing ones.")
-    print("Try running `python3 -m pip install -r requirements.txt`")
+    print("Try running `python3 -m pip install -r requirements.txt` OR `pip install -r requirements.txt`.")
     print(f"Traceback: {e}")
     quit()
 
 # Determine the main project directory, for compatibility (the absolute path to this file)
-maindirectory = os.path.join(os.path.dirname(os.path.abspath(__file__))) 
+maindirectory = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+
+# [ OPTIONS ]
+BACKEND_PATH = "PYTHON.api.app"
+BACKEND_LAUNCH = ['python3', '-m', 'flask', '--app', f'{BACKEND_PATH}', 'run', '--host=0.0.0.0']
+
+FRONTEND_PATH = os.path.join(maindirectory, "PYTHON", "frontend", "frontend_main.py")
+FRONTEND_LAUNCH = ['python3', FRONTEND_PATH]
 
 # Custom low-level functions
 def print(text="", log_filename="", end="\n", max_file_mb=10):
@@ -65,6 +71,12 @@ def print(text="", log_filename="", end="\n", max_file_mb=10):
         rich_print(f"[red][ERROR][/red]: {e}")
         rich_print(f"[red][ERROR][/red]: Could not write to log file at {log_file_path}.")
     rich_print(text, end=end)
+
+def tail(file, n):
+    lines = collections.deque(maxlen=n)
+    for line in file:
+        lines.append(line)
+    return lines
 
 # [ MAIN ]
 if __name__ == "__main__":
@@ -100,7 +112,7 @@ if __name__ == "__main__":
                 arguments[value[0]] = value[1]
     except IndexError:
         print(log_filename="errors.log", text="[red][ERROR][/red]: No arguments were provided. You must provide arguments in the format of `argument=value`")
-        print(log_filename="errors.log", text=f"Example: `python3 {sys.argv[0]} webserver=True`")
+        print(log_filename="errors.log", text=f"Example: `python3 {sys.argv[0]} webserver=False`")
         print(log_filename="errors.log", text=f"Please see the README for more info, or try `python3 {sys.argv[0]} help`")
         # TODO: Readme help
         quit()
@@ -109,7 +121,7 @@ if __name__ == "__main__":
     if "help" in arguments:
         print("Welcome to Scribe!")
         print(f"usage: python3 {sys.argv[0]} [OPTIONS]")
-        print("This script hosts a webserver using NiceGUI, which allows users to upload video/audio/text lectures and use AI to convert them to note documents!")
+        print("This script hosts a full stack webapp using NiceGUI for frontend and Flask for backend, which allows users to upload video/audio/text lectures and use AI to convert them to note documents!")
         print("[OPTIONS]")
         print("help: Displays this help message.")
         quit()
@@ -144,14 +156,33 @@ if __name__ == "__main__":
     # Otherwise, run the program via command line interface
     if opts_dict.get("webserver", False):
         print("[gold1][INFO][/gold1]: webserver enabled, running webserver...")
-        # TODO: Webserver class
-        print("Not implemented yet. Press CTRL + C to quit.")
+        # Run the backend by invoking Flask app in ./PYTHON/api/app.py using subprocess
+        backend_process = subprocess.Popen(BACKEND_LAUNCH)
+        # Run the frontend by invoking NiceGUI in ./PYTHON/frontend/frontend_main.py using subprocess
+        frontend_process = subprocess.Popen(FRONTEND_LAUNCH)
+        # Periodically display the output of the subprocesses
         while True:
-            time.sleep(60)
+            try:
+                # Check if the processes are still running
+                if backend_process.poll() is not None:
+                    print("[red][ERROR][/red]: Backend process has stopped running. Exiting...")
+                    quit()
+                if frontend_process.poll() is not None:
+                    print("[red][ERROR][/red]: Frontend process has stopped running. Exiting...")
+                    quit()
+                print(f"[gold1][INFO][/gold1]: Heartbeat check-in. Sleeping for 60 seconds...")
+                time.sleep(60)
+            except KeyboardInterrupt:
+                print("[gold1][INFO][/gold1]: Keyboard interrupt detected, exiting webserver cleanly...")
+                # Kill the processes if they exist
+                if backend_process and backend_process.poll() is None:
+                    backend_process.kill()
+                if frontend_process and frontend_process.poll() is None:
+                    frontend_process.kill()
+                quit()
     else:
-        print("[gold1][INFO][/gold1]: webserver disabled, running program in standalone mode...")
+        print("[gold1][INFO][/gold1]: webserver disabled, running program in standalone mode for testing...")
         while True:
-            # TODO: Create the standalone class
             try:
                 # TODO: Main logic for setting up standalone class
                 print("Not implemented yet. Press CTRL + C to quit.")
@@ -159,6 +190,4 @@ if __name__ == "__main__":
                     time.sleep(60)
             except KeyboardInterrupt:
                 print("[gold1][INFO][/gold1]: Keyboard interrupt detected, exiting cleanly...")
-                # TODO: Cleanup logic
                 quit()
-            print("[gold1][INFO][/gold1]: Restarting software...")

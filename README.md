@@ -10,6 +10,8 @@
 
 ### More documentation coming soon!
 
+### Make sure to check out Docker documentation in `DOCS` directory (as well as SMTP class info)!
+
 ## Features
 - Compiled Docker image for easy deployment
 - Tested with Python 3.10
@@ -55,9 +57,75 @@ sudo apt-get update
 # Install Docker Engine:
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
+
+### Setup
+- Clone the repository to your local machine
+```bash
+git clone https://github.com/PhysCorp/scribe.git
+```
+- Change directory to the project root
+```bash
+cd scribe
+```
+- Run the following commands to build and run the Docker image
+```bash
+sudo docker-compose build --no-cache
+sudo docker-compose up
+```
+- It will take a few minutes to build the image and run the container. Once it's done, you can access the application at `http://localhost:98` in your web browser. The default port is 98, but you can change it in the `docker-compose.yaml` file.
+
 - If you will be running from source, make sure you have the following packages installed (adjust package manager according to your distro):
 ```bash
 sudo apt-get install python3 python3-pip
+```
+- Remember: There are a lot of `.env.example` files in our project! Make sure to rename them to `.env` and fill in the necessary environment variables.
+
+## Development
+
+### Setup MariaDB
+Download MariaDB [here](https://mariadb.org/download/)
+
+#### Linux (Tested on Debian)
+
+Run ``sudo su`` to run as root.
+
+Assuming the tarball is still in the Downloads directory
+Run the following commands, changing \<USER\> to the user you used to download the tarball:
+```sh
+groupadd mysql
+useradd -g mysql mysql
+cd /usr/local
+tar -zxvpf /home/<USER>/mariadb-11.4.0-preview-linux-systemd-x86_64.tar.gz
+ln -s mariadb-11.4.0-preview-linux-systemd-x86_64/ mysql
+cd mysql
+./scripts/mariadb-install-db --user=mysql
+chown -R root .
+chown -R mysql data
+```
+Run 
+```sh
+sudo /usr/local/mysql/bin/mariadbd-safe
+```
+to start the daemon
+
+Add this to the end of your (non-root) .bashrc file to invoke mariadb commands:
+
+```sh
+export PATH="/usr/local/mysql/bin:$PATH"
+```
+
+### Run Components Locally
+
+#### Run Flask Backend (Port 5000)
+```bash
+python3 -m flask --app PYTHON.api.app run
+# OR
+Flask --app PYTHON.api.app run
+```
+
+#### Run NiceGUI Frontend (Port 8080)
+```bash
+python3 ./PYTHON/frontend/frontend_main.py
 ```
 
 ## About the Developers
