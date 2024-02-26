@@ -128,6 +128,12 @@ Flask --app PYTHON.api.app run
 python3 ./PYTHON/frontend/frontend_main.py
 ```
 
+#### VS Code Debugging
+
+Alternatively, if you are using VS Code, you can use the debugging configurations defined in `.vscode/launch.json` to launch either the frontend, backend, or both simultaneously.
+To do this, click the "Run and Debug" button in the activity bar on the left, pick your desired configuration from the dropdown, and click the "▶" icon.
+You can also press the `F5` key to launch the last used configruation.  
+
 ## About the Developers
 Info will be added soon!
 

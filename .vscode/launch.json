@@ -5,12 +5,29 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Launch NiceGUI",
-            "type": "python",
+            "name": "Python: Frontend (NiceGUI)",
+            "type": "debugpy",
             "request": "launch",
             "program": "PYTHON/frontend/frontend_main.py",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "consoleTitle": "Frontend - NiceGUI" //It says its not allowed for some reason but it still works🤷‍♂️
+        },
+        {
+            "name": "Python: Backend (Flask)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "console": "integratedTerminal",
+            "args": ["--app", "PYTHON.api.app", "run"],
+            "justMyCode": true,
+            "consoleTitle": "Backend - Flask"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Backend + Frontend",
+            "configurations": ["Python: Backend (Flask)", "Python: Frontend (NiceGUI)"]
         }
     ]
 }
