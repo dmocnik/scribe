@@ -174,3 +174,8 @@ flask_session/
 *.env
 
 .nicegui
+
+PRIVATE
+
+PYTHON/speech-to-text/input.wav
+PYTHON/speech-to-text/LOGS/*

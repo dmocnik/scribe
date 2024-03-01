@@ -2,16 +2,22 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "🐳 Build Local Docker Image",
+            "label": "Run on Docker",
             "type": "shell",
-            "command": "sudo bash BUILD/Docker.sh -push=n",
+            "command": "sudo bash BUILD/Docker-Simple.sh",
             "presentation": {"echo": false, "reveal": "always", "focus": false, "panel": "shared", "showReuseMessage": false, "clear": true},
         },
-        {
-            "label": "🔃 Build & Push Docker Image",
-            "type": "shell",
-            "command": "sudo bash BUILD/Docker.sh -push=y",
-            "presentation": {"echo": false, "reveal": "always", "focus": false, "panel": "shared", "showReuseMessage": false, "clear": true},
-        }
+        // {
+        //     "label": "🐳 Build Local Docker Image",
+        //     "type": "shell",
+        //     "command": "sudo bash BUILD/Docker.sh -push=n",
+        //     "presentation": {"echo": false, "reveal": "always", "focus": false, "panel": "shared", "showReuseMessage": false, "clear": true},
+        // },
+        // {
+        //     "label": "🔃 Build & Push Docker Image",
+        //     "type": "shell",
+        //     "command": "sudo bash BUILD/Docker.sh -push=y",
+        //     "presentation": {"echo": false, "reveal": "always", "focus": false, "panel": "shared", "showReuseMessage": false, "clear": true},
+        // }
     ]
 }
