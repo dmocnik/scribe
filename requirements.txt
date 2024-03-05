@@ -1,7 +1,9 @@
-Flask
 mariadb
 SQLAlchemy
 rich
 python-dotenv
 nicegui
 requests
+fastapi-sessions
+passlib
+pydantic_settings
