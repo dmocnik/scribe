@@ -5,7 +5,7 @@
 
 
 # Import the smtp class
-from smtp_module import scribe_smtp
+from smtp.smtp_module import scribe_smtp
 
 # Load vars from .env file in the current directory
 from dotenv import load_dotenv
@@ -37,7 +37,7 @@ smtp_driver = scribe_smtp(smtp_server, smtp_port, username, password)
 # Password reset email
 # smtp_driver.send_template(to='john@example.com', subject='Scribe Password Reset', template='password_reset.html', data={'name': 'John', 'reset_link': 'http://example.com/reset.php?id=1234567890'})
 # Stupid email
-smtp_driver.send_template(to='john@example.com', subject='Bruh', template='foot.html')
+smtp_driver.send_template(to='robertquigley@oakland.edu', subject='Bruh', template='foot.html')
 
 # Garbage collection (calls shutdown method)
 del smtp_driver
