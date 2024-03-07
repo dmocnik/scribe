@@ -5,7 +5,7 @@ from sqlalchemy import update, select, insert, and_
 import random
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Response, Depends
+from fastapi import APIRouter, Response, Body, Depends
 from api.verifier import SessionData, backend, cookie, verifier
 from api.config import settings
 from smtp.smtp_module import scribe_smtp
@@ -16,7 +16,8 @@ account = APIRouter()
 
 # login with username and password
 @account.post('/login')
-async def login(email: str, password: str, response: Response):
+# async def login(email: str, password: str, response: Response):
+async def login(response: Response, email: str = Body(), password: str = Body()):
 
     # create database engine
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
@@ -51,7 +52,7 @@ async def get_email(session_data: SessionData = Depends(verifier)):
 # adds entry to Codes table and send email
 # TODO: check bad email
 @account.post('/password/reset/request', dependencies=[Depends(cookie)])
-def password_request_reset(email: str):
+def password_request_reset(email: str = Body()):
 
     # connect to db
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
@@ -88,7 +89,7 @@ def password_request_reset(email: str):
 
 # given email and login code, add session email and session code
 @account.post('/account/login/code')
-async def login_code(email: str, code: str, response: Response):
+async def login_code(response: Response, email: str = Body(), code: str = Body()):
 
     # connect to db and get matching codes that expire after utc now
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
@@ -117,7 +118,7 @@ async def login_code(email: str, code: str, response: Response):
 
 # given session code and new password, update password
 @account.post('/password/reset', dependencies=[Depends(cookie)])
-async def password_reset(new_password: str, response: Response, session_data: SessionData = Depends(verifier)):
+async def password_reset(response: Response, new_password: str = Body(), session_data: SessionData = Depends(verifier)):
 
     # confirm session code is still active
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
@@ -147,7 +148,7 @@ async def password_reset(new_password: str, response: Response, session_data: Se
 
 # given session email and valid old password and new password, update password
 @account.post('/password/update', dependencies=[Depends(cookie)])
-def password_update(old_password: str, new_password: str, session_data: SessionData = Depends(verifier)):
+def password_update(old_password: str = Body(), new_password: str = Body(), session_data: SessionData = Depends(verifier)):
 
     # check old password is valid
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
@@ -172,7 +173,7 @@ def password_update(old_password: str, new_password: str, session_data: SessionD
 
 # delete account and ALL DATA
 @account.post('/account/delete', dependencies=[Depends(cookie)])
-def delete_account(password: str):
+def delete_account(password: str = Body()):
 
     # check password
 
@@ -182,7 +183,7 @@ def delete_account(password: str):
 
 # create account
 @account.post('/account/create')
-async def create_account(email: str, password: str, response: Response, name=""):
+async def create_account(response: Response, email: str = Body(), password: str = Body(), name: str = Body()):
 
     # create database engine
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
@@ -239,7 +240,11 @@ async def create_account(email: str, password: str, response: Response, name="")
 
     # send an email
     smtp_driver = scribe_smtp(settings.smtp_server, settings.smtp_port, settings.smtp_username, settings.password)
-    smtp_driver.send_email(to=email,subject='Email Confirmation Code', body=f"oi here's your code: {code}")
+    success = smtp_driver.send_email(to=email,subject='Email Confirmation Code', body=f"oi here's your code: {code}")
+
+    # if email failed, return failure
+    if not success:
+        return False
 
     # print code to console
     print(code)
@@ -248,7 +253,7 @@ async def create_account(email: str, password: str, response: Response, name="")
 
 # deactivate account
 @account.post('/account/deactivate', dependencies=[Depends(cookie)])
-def deactivate_account(email: str, session_data: SessionData = Depends(verifier)):
+def deactivate_account(email: str = Body(), session_data: SessionData = Depends(verifier)):
 
     # if not matching - someone's trying to deactivate an email they don't have access to
     if email != session_data.email:
@@ -271,7 +276,7 @@ def deactivate_account(email: str, session_data: SessionData = Depends(verifier)
 
 # given email and code, activate account
 @account.post('/account/activate')
-def activate_account(email: str, code: str):
+def activate_account(email: str = Body(), code: str = Body()):
 
     # setup db session
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
