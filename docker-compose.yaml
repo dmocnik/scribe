@@ -8,6 +8,8 @@ services:
     volumes:
       - scribe_data:/var/lib/mysql
       - ./CONFIG/scribe_database.sql:/docker-entrypoint-initdb.d/scribe_database.sql
+    ports:
+      - "96:3306" # Map port 96 on host to 3306 in container (Scribe DB)
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}

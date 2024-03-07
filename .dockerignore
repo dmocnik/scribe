@@ -45,3 +45,8 @@ CONFIG/
 DOCS/
 
 *.env
+
+PRIVATE
+
+PYTHON/speech-to-text/input.wav
+PYTHON/speech-to-text/LOGS/*
