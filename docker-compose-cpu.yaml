@@ -61,14 +61,7 @@ services:
     networks:
       - scribe_int_network
   openai-whisper-asr:
-    image: onerahmet/openai-whisper-asr-webservice:latest-gpu
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    image: onerahmet/openai-whisper-asr-webservice:latest
     volumes:
       - whisper_persist:/data/whisper
     ports:
