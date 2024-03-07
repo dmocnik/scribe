@@ -1,43 +1,34 @@
-from .config import DevelopmentConfig
-from .swagger.swagger_setup import setup_swagger
-from .pages.login import account
-from flask_cors import CORS
-from flask import Flask, session
-from flask_session import Session
-import json
+from fastapi import FastAPI, Response, Depends
+from uuid import UUID, uuid4
 
-app = Flask(__name__)
-app.config.from_object(DevelopmentConfig)
-app.config['SESSION_TYPE'] = 'filesystem'
-CORS(app)
-Session(app)
+from api.verifier import SessionData, backend, cookie, verifier
+from api.pages import login
 
-# setup swagger
-setup_swagger(app, app.config)
+app = FastAPI()
 
-# add account routes
-app.register_blueprint(account)
+app.include_router(login.account)
 
-# add get swagger.json
-@app.get('/swagger.json')
-def get_swagger():
-    with open('./swagger/swagger.json') as f:
-        data = json.load(f)
-        return data
+# -------------------- test session stuff ---------------------
 
-# test session headers and whatnot
-@app.route('/set/')
-def set():
-    print(f'session: {session}')
-    session['key'] = session.sid
-    return 'ok'
+# @app.post("/create_session/{name}")
+# async def create_session(name: str, response: Response):
 
-# test session headers
-@app.route('/get/')
-def get():
-    return session.get('key', 'not set')
+#     session = uuid4()
+#     data = SessionData(username=name)
 
-# healthcheck to test if api is running
-@app.route('/healthcheck')
-def healthcheck():
-    return 'ok'
+#     await backend.create(session, data)
+#     cookie.attach_to_response(response, session)
+
+#     return f"created session for {name}"
+
+# @app.get("/whoami", dependencies=[Depends(cookie)])
+# async def whoami(session_data: SessionData = Depends(verifier)):
+#     return session_data
+
+
+# @app.post("/delete_session")
+# async def del_session(response: Response, session_id: UUID = Depends(cookie)):
+#     await backend.delete(session_id)
+#     cookie.delete_from_response(response)
+#     return "deleted session"
+
