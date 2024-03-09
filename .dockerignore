@@ -48,5 +48,5 @@ DOCS/
 
 PRIVATE
 
-PYTHON/speech-to-text/input.wav
-PYTHON/speech-to-text/LOGS/*
+PYTHON/speech-to-text_deprecated/input.wav
+PYTHON/speech-to-text_deprecated/LOGS/*
