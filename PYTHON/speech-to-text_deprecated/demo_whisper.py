@@ -48,7 +48,7 @@ def print(text="", log_filename="", end="\n", max_file_mb=10):
 # [ MAIN ]
 if __name__ == "__main__":
     # Welcome message
-    print("Welcome! Beginning the speech-to-text process...")
+    print("Welcome! Beginning the speech-to-text_deprecated process...")
     # Load the model
     model = whisper.load_model(SPEECH_MODEL)
     # Print status
