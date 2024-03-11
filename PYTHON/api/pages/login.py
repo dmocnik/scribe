@@ -5,7 +5,7 @@ from sqlalchemy import update, select, insert, and_
 import random
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Response, Depends
+from fastapi import APIRouter, Response, Body, Depends
 from api.verifier import SessionData, backend, cookie, verifier
 from api.config import settings
 from smtp.smtp_module import scribe_smtp
@@ -16,7 +16,8 @@ account = APIRouter()
 
 # login with username and password
 @account.post('/login')
-async def login(email: str, password: str, response: Response):
+# async def login(email: str, password: str, response: Response):
+async def login(response: Response, email: str = Body(), password: str = Body()):
 
     # create database engine
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
@@ -40,7 +41,8 @@ async def login(email: str, password: str, response: Response):
 
     # otherwise return 401 if invalid creds
     else:    
-        return "Unauthorized", 401
+        response.status_code = 401
+        return
     
 # get email of current session
 @account.get('/email', dependencies=[Depends(cookie)])
@@ -51,7 +53,7 @@ async def get_email(session_data: SessionData = Depends(verifier)):
 # adds entry to Codes table and send email
 # TODO: check bad email
 @account.post('/password/reset/request', dependencies=[Depends(cookie)])
-def password_request_reset(email: str):
+def password_request_reset(response: Response, email: str = Body()):
 
     # connect to db
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
@@ -79,16 +81,21 @@ def password_request_reset(email: str):
 
     # send email with link and code
     smtp_driver = scribe_smtp(settings.smtp_server, settings.smtp_port, settings.smtp_username, settings.password)
-    smtp_driver.send_email(to=email,subject='Password Reset Request', body=f"oi here's your code: {code}")
+    success = smtp_driver.send_email(to=email,subject='Password Reset Request', body=f"oi here's your code: {code}")
         
-    # print code
-    print(code)
+    # if email failed, let em know
+    if not success:
+        response.status_code = 400
+        return
+    
+    # # print code
+    # print(code)
 
     return 'ok'
 
 # given email and login code, add session email and session code
 @account.post('/account/login/code')
-async def login_code(email: str, code: str, response: Response):
+async def login_code(response: Response, email: str = Body(), code: str = Body()):
 
     # connect to db and get matching codes that expire after utc now
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
@@ -105,7 +112,8 @@ async def login_code(email: str, code: str, response: Response):
 
     # if no valid code exists, return bad creds
     if not len(valid_codes):
-        return 'Expired', 401
+        response.status_code = 401
+        return
     
     # otherwise, set session creds and return ok
     session = uuid4()
@@ -117,7 +125,7 @@ async def login_code(email: str, code: str, response: Response):
 
 # given session code and new password, update password
 @account.post('/password/reset', dependencies=[Depends(cookie)])
-async def password_reset(new_password: str, response: Response, session_data: SessionData = Depends(verifier)):
+async def password_reset(response: Response, new_password: str = Body(), session_data: SessionData = Depends(verifier)):
 
     # confirm session code is still active
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
@@ -129,7 +137,8 @@ async def password_reset(new_password: str, response: Response, session_data: Se
 
     # if no valid code exists, return bad creds
     if not len(matched_codes):
-        return 'Expired', 401
+        response.status_code = 401
+        return
     
     # otherwise, update password
     stmt = (update(User).values(password_hash=sha256_crypt.encrypt(new_password)).where(User.email == session_data.email))
@@ -147,7 +156,7 @@ async def password_reset(new_password: str, response: Response, session_data: Se
 
 # given session email and valid old password and new password, update password
 @account.post('/password/update', dependencies=[Depends(cookie)])
-def password_update(old_password: str, new_password: str, session_data: SessionData = Depends(verifier)):
+def password_update(response: Response, old_password: str = Body(), new_password: str = Body(), session_data: SessionData = Depends(verifier)):
 
     # check old password is valid
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
@@ -160,7 +169,8 @@ def password_update(old_password: str, new_password: str, session_data: SessionD
 
     # if invalid old password, return unauthorized
     if not is_valid:
-        return 'Unauthorized', 401
+        response.status_code = 401
+        return
     
     # otherwise, update password
     stmt = update(User).values(password_hash=sha256_crypt.encrypt(new_password)).where(User.email == session_data.email)
@@ -172,17 +182,18 @@ def password_update(old_password: str, new_password: str, session_data: SessionD
 
 # delete account and ALL DATA
 @account.post('/account/delete', dependencies=[Depends(cookie)])
-def delete_account(password: str):
+def delete_account(response: Response, password: str = Body()):
 
     # check password
 
     # delete everything from 
 
-    return 'Not Implemented', 501
+    response.status_code = 501
+    return
 
 # create account
 @account.post('/account/create')
-async def create_account(email: str, password: str, response: Response, name=""):
+async def create_account(response: Response, email: str = Body(), password: str = Body(), name: str = Body()):
 
     # create database engine
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
@@ -196,7 +207,8 @@ async def create_account(email: str, password: str, response: Response, name="")
     user_exists = Session.query(User.email).where(User.email == email).first() is not None
 
     if user_exists:
-        return 'Conflict', 409
+        response.status_code = 409
+        return
     
     # hash password
     password_hash = sha256_crypt.encrypt(password)
@@ -239,20 +251,26 @@ async def create_account(email: str, password: str, response: Response, name="")
 
     # send an email
     smtp_driver = scribe_smtp(settings.smtp_server, settings.smtp_port, settings.smtp_username, settings.password)
-    smtp_driver.send_email(to=email,subject='Email Confirmation Code', body=f"oi here's your code: {code}")
+    success = smtp_driver.send_email(to=email,subject='Email Confirmation Code', body=f"oi here's your code: {code}")
+
+    # if email failed, return failure
+    if not success:
+        response.status_code = 400
+        return 
 
     # print code to console
-    print(code)
+    # print(code)
 
     return 'ok'
 
 # deactivate account
 @account.post('/account/deactivate', dependencies=[Depends(cookie)])
-def deactivate_account(email: str, session_data: SessionData = Depends(verifier)):
+def deactivate_account(response: Response, email: str = Body(), session_data: SessionData = Depends(verifier)):
 
     # if not matching - someone's trying to deactivate an email they don't have access to
     if email != session_data.email:
-        return 'Unauthorized', 401
+        response.status_code = 401
+        return
 
     # setup db session
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
@@ -271,7 +289,7 @@ def deactivate_account(email: str, session_data: SessionData = Depends(verifier)
 
 # given email and code, activate account
 @account.post('/account/activate')
-def activate_account(email: str, code: str):
+def activate_account(response: Response, email: str = Body(), code: str = Body()):
 
     # setup db session
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
@@ -287,7 +305,8 @@ def activate_account(email: str, code: str):
         matched_codes = [x for x in result if sha256_crypt.verify(code, x[0])]
 
     if not len(matched_codes):
-        return "Expired", 410
+        response.status_code = 410
+        return
 
     # set disabled to True
     stmt = update(User).where(and_(User.email == email)).values(disabled=False)
