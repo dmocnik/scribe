@@ -4,19 +4,24 @@ from pages import login, verify_account, index
 
 # TODO
 # Make it react to screen size changes better
-# Serve the wallpaper background better (probably from local file)
-# Track whether account "is disabled" in user storage
+# Style pass
+    # Serve the wallpaper background better (probably from local file)
+    # Favicon
+    # Color scheme
+    # font
+    # default style props
 # Show web requests in Chrome DevTools
-# Async / await stuff properly
 
 app.add_middleware(ScribeAuthMiddleware)
 
-async def check_notifications():
+async def check_notifications(): # TODO make this be able to handle multiple notifications instead of just one at a time
     notifications = app.storage.user.pop('notifications', None)
     if notifications == 'login':
         ui.notify(f'Hello, {app.storage.user.get("username")}!', position='top-right', close_button=True, type='positive')
     if notifications == 'logout':
         ui.notify('Successfully logged out!', position='top-right', close_button=True, type='positive')
+    if notifications == 'account_create_success':
+        ui.notify('Account verified successfully! You are now logged in.', position='top-right', close_button=True, type='positive')
     pass
 
 @ui.page('/')
@@ -25,7 +30,7 @@ async def _index():
     await index.content()
     
 @ui.page('/bruh')
-async def bruh():
+async def _bruh():
     await check_notifications()
     ui.image('https://www.oakland.edu/Assets/Oakland/president/graphics/headshots/oraheadshot.jpg')
 
@@ -35,8 +40,8 @@ async def _login():
     await login.content()
 
 @ui.page('/verify-account')
-async def _verify_account():
+async def _verify_account(email: str = None, code: str = None, intent: str = None):
     await check_notifications()
-    await verify_account.content()
+    await verify_account.content(email, code, intent)
 
 ui.run(dark=True, title='Scribe', favicon='📝', storage_secret='this_is_a_secret', host='0.0.0.0', port=8080, show=False)

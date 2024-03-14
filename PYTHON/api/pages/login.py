@@ -53,8 +53,7 @@ async def get_email(session_data: SessionData = Depends(verifier)):
 # adds entry to Codes table and send email
 # TODO: check bad email
 @account.post('/password/reset/request', dependencies=[Depends(cookie)])
-def password_request_reset(response: Response, email: str = Body()):
-
+def password_request_reset(response: Response, email: str = Body(embed=True)):
     # connect to db
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
 
@@ -125,7 +124,7 @@ async def login_code(response: Response, email: str = Body(), code: str = Body()
 
 # given session code and new password, update password
 @account.post('/password/reset', dependencies=[Depends(cookie)])
-async def password_reset(response: Response, new_password: str = Body(), session_data: SessionData = Depends(verifier)):
+async def password_reset(response: Response, new_password: str = Body(embed=True), session_data: SessionData = Depends(verifier)):
 
     # confirm session code is still active
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)

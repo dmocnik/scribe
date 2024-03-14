@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Frontend (NiceGUI)",
+            "name": "Frontend (NiceGUI)",
             "type": "debugpy",
             "request": "launch",
             "program": "PYTHON/frontend/frontend_main.py",
@@ -14,20 +14,21 @@
             "consoleTitle": "Frontend - NiceGUI" //It says its not allowed for some reason but it still works🤷‍♂️
         },
         {
-            "name": "Python: Backend (Flask)",
+            "name": "Backend (FastAPI)",
             "type": "debugpy",
             "request": "launch",
-            "module": "flask",
+            "module": "uvicorn",
+            "cwd": "${workspaceFolder}/PYTHON",
             "console": "integratedTerminal",
-            "args": ["--app", "PYTHON.api.app", "run"],
+            "args": ["api.app:app", "--reload"],
             "justMyCode": true,
-            "consoleTitle": "Backend - Flask"
+            "consoleTitle": "Backend - FastAPI"
         }
     ],
     "compounds": [
         {
             "name": "Backend + Frontend",
-            "configurations": ["Python: Backend (Flask)", "Python: Frontend (NiceGUI)"]
+            "configurations": ["Backend (FastAPI)", "Frontend (NiceGUI)"]
         }
     ]
 }

@@ -1,11 +1,19 @@
 from nicegui import ui, app
-import requests, re
+import requests, re, asyncio
+from urllib.parse import quote_plus
 from fastapi.responses import RedirectResponse
 
 from config import DevelopmentConfig as config
 
+#TODO 
+# Add validation for sign in inputs (so they cant send empty requests)
+# handle the requests in an async way - httpx
+# fix the validtion of the sign up inputs
+
 API_URL = config.API_URL
 LOGIN_URL = f'{API_URL}/login'
+ACCOUNT_CREATE_URL = f'{API_URL}/account/create'
+PW_RESET_REQUEST_URL = f'{API_URL}/password/reset/request'
 
 async def content():
     def try_login():
@@ -27,7 +35,7 @@ async def content():
                                         'authenticated': True,
                                         'cookie': cookie})
                 app.storage.user['notifications'] = 'login'
-                path = app.storage.user.get('referrer_path', '/')
+                path = app.storage.user.pop('referrer_path', '/')
                 ui.open(path)
             elif res.status_code == 401:
                 ui.notify('Invalid username or password', position='top-right', close_button=True, type='negative')
@@ -35,7 +43,7 @@ async def content():
                 ui.notify('An error occurred', position='top-right', close_button=True, type='negative')
             sign_in_btn.props(remove='loading')
             
-    EMAIL_REGEX = r'^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$'
+    EMAIL_REGEX = r'^[\w+.]+@[a-zA-Z_]+?\.[a-zA-Z]+$'
     DEBOUNCE_TIME = 500
     async def sign_up():
         async def try_sign_up():
@@ -46,7 +54,15 @@ async def content():
                     'password': password_input.value,
                     'name': name_input.value if name_input.value else None
                 }
-                sign_up_dialog.submit(user)
+                sign_in_btn.props('loading')
+                res = requests.post(ACCOUNT_CREATE_URL, json=user)
+                if res.status_code == 200:
+                    sign_up_dialog.submit(user)
+                elif res.status_code == 409:
+                    ui.notify('A user with that email already exists', position='top-right', close_button=True, type='negative')
+                else:
+                    ui.notify('An error occurred', position='top-right', close_button=True, type='negative')
+                sign_in_btn.props(remove='loading')
 
         with ui.dialog() as sign_up_dialog, ui.card().classes('w-1/2'):
             with ui.row().classes('w-full items-center'):
@@ -87,12 +103,49 @@ async def content():
             
             with ui.row().classes('w-full'):
                 ui.space()
-                ui.button('Sign up', on_click=lambda: try_sign_up())
+                sign_up_btn = ui.button('Sign up', on_click=lambda: try_sign_up())
 
         info = await sign_up_dialog
         if info:
-            ui.notify(info)
-            ui.notify('Account created!', position='top-right', close_button=True, type='positive')
+            ui.notify('Account created! Redirecting you...', position='top-right', close_button=True, type='positive')
+            encoded_email = quote_plus(info['email'])
+            await asyncio.sleep(2)
+            ui.navigate.to(f'/verify-account?code=ass&email={encoded_email}&intent=account_create')
+
+    async def forgot_pw():
+        async def try_forgot_pw():
+            if email_input.validate() == True:
+                send_email_btn.props('loading')
+                res = requests.post(PW_RESET_REQUEST_URL,
+                                    json={"email": email_input.value},
+                                    headers={"Cookie": f"{app.storage.user.get('cookie')}"})
+                if res.status_code == 200:
+                    forgot_pw_dialog.submit(email_input.value)
+                else:
+                    ui.notify('An error occurred', position='top-right', close_button=True, type='negative')
+                """ elif res.status_code == xxx: # For later
+                    ui.notify('An account with that email does not exist', position='top-right', close_button=True, type='negative') """
+                send_email_btn.props(remove='loading')
+
+        with ui.dialog() as forgot_pw_dialog, ui.card().classes('w-1/2'):
+            with ui.row().classes('w-full items-center'):
+                ui.label('Forgot/Reset Password').classes('text-h5')
+                ui.space()
+                ui.button(icon='close', on_click=lambda: forgot_pw_dialog.close()).props('flat round text-color="white"')
+
+            ui.label('If you cannot remember or wish to reset your password, please enter your email address and we will send you a link to do so.')
+            email_input = ui.input('Email address',
+                    validation=lambda value: 'Please enter a valid email' if not re.match(EMAIL_REGEX, value) else None) \
+                    .props(f'outlined debounce="{DEBOUNCE_TIME}"') \
+                    .classes('w-full')
+            
+            with ui.row().classes('w-full'):
+                ui.space()
+                send_email_btn = ui.button('Send Email', on_click=lambda: try_forgot_pw())
+
+        email = await forgot_pw_dialog
+        if email:
+            ui.notify('Email sent!', position='top-right', close_button=True, type='positive')
 
     if app.storage.user.get('authenticated', False):
         return RedirectResponse('/')
@@ -121,6 +174,6 @@ async def content():
                 sign_in_btn = ui.button(text='Sign in', icon='login', on_click=try_login)
             with ui.column().classes('w-1/2 p-5'):
                 ui.label('Need an account?')
-                ui.button(text='Sign up', icon='person_add', on_click=sign_up)
+                sign_up_btn = ui.button(text='Sign up', icon='person_add', on_click=sign_up)
                 ui.label('Forgot your email address or password?')
-                ui.button(text='Reset Password', icon='lock_reset')
+                reset_pw_btn = ui.button(text='Reset Password', icon='lock_reset', on_click=forgot_pw)

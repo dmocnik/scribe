@@ -1,5 +1,6 @@
 from nicegui import ui, app
 from nicegui.events import TableSelectionEventArguments
+from config import DevelopmentConfig as config
 
 #TODO
 # Fix the height of the panels
@@ -10,6 +11,9 @@ from nicegui.events import TableSelectionEventArguments
 # Potentially switch to single-column format with tabs on top instead of to side
 # Disable buttons if no projects
 # Parse the date maybe
+
+API_URL = config.API_URL
+PW_UPDATE_URL = f'{API_URL}/password/update'
 
 project_columns = [ # For now we have name, status, and last modified
     {'name': 'name', 'label': 'Name', 'field': 'name', 'sortable': True},
@@ -29,7 +33,7 @@ fake_trashed_projects = [
 ]
 
 async def logout():
-    app.storage.user.clear()
+    app.storage.user.update({'authenticated': False})
     app.storage.user.update({'notifications': 'logout'})
     ui.open('/login')
 
