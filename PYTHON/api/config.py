@@ -11,6 +11,7 @@ class Settings(BaseSettings):
         smtp_port: str = os.environ.get("SMTP_PORT")
         smtp_username: str = os.environ.get("SMTP_USERNAME")
         password: str = os.environ.get("SMTP_PASSWORD")
+        FRONTEND_URL: str = os.environ.get("FRONTEND_URL")
     except Exception as e:
         print(f"[ERROR]: Failed to get credentials from SMTP environment vars. This script cannot continue. Please make sure you have SMTP_SERVER, SMTP_PORT, SMTP_USERNAME, and SMTP_PASSWORD set.\nOutput: {str(e)}")
         quit()
