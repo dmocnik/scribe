@@ -5,12 +5,30 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Launch NiceGUI",
-            "type": "python",
+            "name": "Frontend (NiceGUI)",
+            "type": "debugpy",
             "request": "launch",
             "program": "PYTHON/frontend/frontend_main.py",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "consoleTitle": "Frontend - NiceGUI" //It says its not allowed for some reason but it still works🤷‍♂️
+        },
+        {
+            "name": "Backend (FastAPI)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "cwd": "${workspaceFolder}/PYTHON",
+            "console": "integratedTerminal",
+            "args": ["api.app:app", "--reload"],
+            "justMyCode": true,
+            "consoleTitle": "Backend - FastAPI"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Backend + Frontend",
+            "configurations": ["Backend (FastAPI)", "Frontend (NiceGUI)"]
         }
     ]
 }

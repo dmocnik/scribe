@@ -42,3 +42,8 @@ The `{{name}}` and `{{link}}` tags will be replaced with the values you provide 
 
 #### Additional Note(s)
 - If you want to use Gmail to send message, note that they require App Passwords. You can generate one by going to your Google Account settings and navigating to 2-Step Verification. From there, you can generate an App Password for your application. You will need to use this password in the `.env` file for the `SMTP_PASSWORD` variable.
+- If you want to use Gmail to send a message, set the following environment vars:
+  - SMTP_PASSWORD=``{{the App Password from gmail}}``
+  - SMTP_USERNAME=``{{your email}}``
+  - SMTP_SERVER="smtp.gmail.com"
+  - SMTP_PORT=465

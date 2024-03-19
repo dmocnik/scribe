@@ -1,12 +1,9 @@
-Flask
 mariadb
 SQLAlchemy
 rich
 python-dotenv
 nicegui
 requests
-waitress
-flask-swagger-ui
+fastapi-sessions
 passlib
-flask_cors
-flask_session
+pydantic_settings
