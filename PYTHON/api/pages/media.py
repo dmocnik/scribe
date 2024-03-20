@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Response, Body, Depends, UploadFile, File
 from typing import Annotated
-from api.verifier import SessionData, backend, cookie, verifier
-from api.config import settings
+from PYTHON.api.verifier import SessionData, backend, cookie, verifier
+from PYTHON.api.config import settings
 from uuid import uuid4
 import base64
 
@@ -9,7 +9,7 @@ import sqlalchemy
 from sqlalchemy import update, select, insert, and_, create_engine
 from sqlalchemy.orm import Session
 
-from api.models import User, Project, Media
+from PYTHON.api.models import User, Project, Media
 
 media = APIRouter()
 

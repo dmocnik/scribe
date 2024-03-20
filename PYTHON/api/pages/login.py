@@ -1,14 +1,14 @@
 from passlib.hash import sha256_crypt
-from api.models import User, Codes
+from PYTHON.api.models import User, Codes
 import sqlalchemy
 from sqlalchemy import update, select, insert, and_
 import random
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Response, Body, Depends
-from api.verifier import SessionData, backend, cookie, verifier
-from api.config import settings
-from smtp.smtp_module import scribe_smtp
+from PYTHON.api.verifier import SessionData, backend, cookie, verifier
+from PYTHON.api.config import settings
+from PYTHON.smtp.smtp_module import scribe_smtp
 from uuid import UUID, uuid4
 import string
 

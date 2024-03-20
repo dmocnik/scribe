@@ -18,6 +18,9 @@
 --
 -- Table structure for table `codes`
 --
+CREATE DATABASE IF NOT EXISTS scribe;
+
+USE scribe;
 
 DROP TABLE IF EXISTS `codes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -66,7 +69,7 @@ CREATE TABLE `project` (
   PRIMARY KEY (`id`),
   KEY `project_user_FK` (`user_id`),
   CONSTRAINT `project_user_FK` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -100,3 +103,8 @@ CREATE TABLE `user` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2024-03-19  0:34:49
+
+SELECT * FROM mysql.user;
+UPDATE mysql.user SET Password=PASSWORD('averystrongpassword') WHERE User='scribe_admin';
+
+PRINT 'the script has run'
