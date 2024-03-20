@@ -42,7 +42,7 @@ maindirectory = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 
 # [ OPTIONS ]
 BACKEND_PATH = "PYTHON.api.app"
-BACKEND_LAUNCH = ['python3', '-m', 'flask', '--app', f'{BACKEND_PATH}', 'run', '--host=0.0.0.0']
+BACKEND_LAUNCH = ['uvicorn', f'{BACKEND_PATH}:app', '--reload', '--host', '0.0.0.0']
 
 FRONTEND_PATH = os.path.join(maindirectory, "PYTHON", "frontend", "frontend_main.py")
 FRONTEND_LAUNCH = ['python3', FRONTEND_PATH]

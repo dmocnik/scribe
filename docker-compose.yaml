@@ -26,12 +26,22 @@ services:
     container_name: scribe_app
     environment:
       - BRUH=${BRUH} # Don't question it
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_SERVER=${SMTP_SERVER}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - DATABASE_CONNECTOR=${DATABASE_CONNECTOR}
     volumes:
       - scribe_persist_frontend:/app/.nicegui
       - scribe_persist_backend:/app/flask_session
       - scribe_logs:/app/LOGS
     ports:
-      - "97:5000" # Map port 97 on host to 5000 in container (Flask Backend)
+      - "97:8000" # Map port 97 on host to 8000 in container (FastAPI Backend)
       - "98:8080" # Map port 98 on host to 8080 in container (NiceGUI Frontend)
     links:
       - scribe_db

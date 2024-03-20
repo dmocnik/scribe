@@ -1,12 +1,14 @@
 from fastapi import FastAPI, Response, Depends
 from uuid import UUID, uuid4
 
-from api.verifier import SessionData, backend, cookie, verifier
-from api.pages import login
+from PYTHON.api.verifier import SessionData, backend, cookie, verifier
+from PYTHON.api.pages import login, media
 
 app = FastAPI()
 
 app.include_router(login.account)
+app.include_router(media.media)
+
 
 # -------------------- test session stuff ---------------------
 

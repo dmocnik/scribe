@@ -1,14 +1,14 @@
 from passlib.hash import sha256_crypt
-from api.models import User, Codes
+from PYTHON.api.models import User, Codes
 import sqlalchemy
 from sqlalchemy import update, select, insert, and_
 import random
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Response, Body, Depends
-from api.verifier import SessionData, backend, cookie, verifier
-from api.config import settings
-from smtp.smtp_module import scribe_smtp
+from PYTHON.api.verifier import SessionData, backend, cookie, verifier
+from PYTHON.api.config import settings
+from PYTHON.smtp.smtp_module import scribe_smtp
 from uuid import UUID, uuid4
 import string
 
@@ -66,22 +66,32 @@ def password_request_reset(response: Response, email: str = Body(embed=True)):
     expiration = datetime.utcnow() + timedelta(minutes=15)
 
     # get user id from matching email
-    stmt = select(User.id).where(User.email == email)
+    stmt = select(User.id, User.name).where(User.email == email)
     with engine.connect() as conn:
-        user_id = conn.execute(stmt).first()[0]
+        user_db = conn.execute(stmt).first()
 
     # add code to db
-    stmt = insert(Codes).values(user_ID=user_id, code_hash=code_hash, code_expiry=expiration)
+    stmt = insert(Codes).values(user_ID=user_db[0], code_hash=code_hash, code_expiry=expiration)
     with engine.connect() as conn:
         conn.execute(stmt)
         conn.commit()
 
     print('added code to db')
 
+    data = {
+        "reset_link": settings.FRONTEND_URL + "/reset-password?email=" + email + "&code=" + code 
+    }
+
+    if user_db[1] == "":
+        data["name"] = email
+    else:
+        data["name"] = user_db[1]
+
     # send email with link and code
     smtp_driver = scribe_smtp(settings.smtp_server, settings.smtp_port, settings.smtp_username, settings.password)
-    success = smtp_driver.send_email(to=email,subject='Password Reset Request', body=f"oi here's your code: {code}")
-        
+    # success = smtp_driver.send_email(to=email,subject='Password Reset Request', body=f"oi here's your code: {code}")
+    success = smtp_driver.send_template(to=email, subject='Password Reset Request', template='password_reset.html', data=data)
+
     # if email failed, let em know
     if not success:
         response.status_code = 400
@@ -191,6 +201,7 @@ def delete_account(response: Response, password: str = Body()):
     return
 
 # create account
+# TODO discuss cleaning email, bad users may try some wild injections
 @account.post('/account/create')
 async def create_account(response: Response, email: str = Body(), password: str = Body(), name: str = Body()):
 
@@ -248,9 +259,19 @@ async def create_account(response: Response, email: str = Body(), password: str 
     Session.add(user_code)
     Session.commit()
 
+    # populate email
+    data = {}
+    if name == "":
+        data["name"] = email
+    else:
+        data["name"] = name
+
+    data["verification_link"] = settings.FRONTEND_URL + "/verify-account?email=" + email + "&code=" + code
+
     # send an email
     smtp_driver = scribe_smtp(settings.smtp_server, settings.smtp_port, settings.smtp_username, settings.password)
-    success = smtp_driver.send_email(to=email,subject='Email Confirmation Code', body=f"oi here's your code: {code}")
+    # success = smtp_driver.send_email(to=email,subject='Email Confirmation Code', body=f"oi here's your code: {code}")
+    success = smtp_driver.send_template(to=email, subject='Welcome to Scribe! Please Confirm Your Email', template='verify_account.html', data=data)
 
     # if email failed, return failure
     if not success:
@@ -315,3 +336,4 @@ def activate_account(response: Response, email: str = Body(), code: str = Body()
         
     # return success
     return 'ok'
+

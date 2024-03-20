@@ -1,106 +1,110 @@
--- MySQL Workbench Forward Engineering
+-- MariaDB dump 10.19-11.2.3-MariaDB, for debian-linux-gnu (x86_64)
+--
+-- Host: localhost    Database: scribe
+-- ------------------------------------------------------
+-- Server version	11.2.3-MariaDB-1:11.2.3+maria~deb12
 
-SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
-SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
-SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
--- -----------------------------------------------------
--- Schema mydb
--- -----------------------------------------------------
--- -----------------------------------------------------
--- Schema scribe
--- -----------------------------------------------------
+--
+-- Table structure for table `codes`
+--
+CREATE DATABASE IF NOT EXISTS scribe;
 
--- -----------------------------------------------------
--- Schema scribe
--- -----------------------------------------------------
-CREATE SCHEMA IF NOT EXISTS `scribe` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci ;
-USE `scribe` ;
+USE scribe;
 
--- -----------------------------------------------------
--- Table `scribe`.`user`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `scribe`.`user` (
-  `id` INT NOT NULL,
-  `email` VARCHAR(30) NULL DEFAULT NULL,
-  `password` VARCHAR(30) NULL DEFAULT NULL,
-  `name` VARCHAR(30) NULL DEFAULT NULL,
-  `disabled` TINYINT(1) NULL DEFAULT NULL,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_unicode_520_ci;
-
-
--- -----------------------------------------------------
--- Table `scribe`.`codes`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `scribe`.`codes` (
-  `id` INT NOT NULL,
-  `user_ID` INT NULL DEFAULT NULL,
-  `code_hash` VARCHAR(256) NULL DEFAULT NULL,
-  `code_expiry` DATETIME NULL DEFAULT NULL,
+DROP TABLE IF EXISTS `codes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `codes` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_ID` int(11) NOT NULL,
+  `code_hash` varchar(256) NOT NULL,
+  `code_expiry` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  INDEX `user_ID` (`user_ID` ASC) VISIBLE,
-  CONSTRAINT `codes_ibfk_1`
-    FOREIGN KEY (`user_ID`)
-    REFERENCES `scribe`.`user` (`id`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_unicode_520_ci;
+  KEY `user_ID` (`user_ID`),
+  CONSTRAINT `codes_ibfk_1` FOREIGN KEY (`user_ID`) REFERENCES `user` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+--
+-- Table structure for table `media`
+--
 
--- -----------------------------------------------------
--- Table `scribe`.`media`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `scribe`.`media` (
-  `id` INT NOT NULL,
-  `name` VARCHAR(20) NULL DEFAULT NULL,
-  `type` VARCHAR(20) NULL DEFAULT NULL,
-  `content` LONGBLOB NULL DEFAULT NULL,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_unicode_520_ci;
-
-
--- -----------------------------------------------------
--- Table `scribe`.`project`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `scribe`.`project` (
-  `id` INT NOT NULL,
-  `name` VARCHAR(20) NULL DEFAULT NULL,
-  `video_id` INT NULL DEFAULT NULL,
-  `transcript_id` INT NULL DEFAULT NULL,
-  `notes_id` INT NULL DEFAULT NULL,
-  `audio_id` INT NULL DEFAULT NULL,
-  `highlights_id` INT NULL DEFAULT NULL,
+DROP TABLE IF EXISTS `media`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `media` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(64) NOT NULL,
+  `type` enum('video','transcript','aivideo','aiaudio','aisummary') NOT NULL,
+  `content` longblob NOT NULL,
+  `project_id` int(11) NOT NULL,
   PRIMARY KEY (`id`),
-  INDEX `video_id` (`video_id` ASC) VISIBLE,
-  INDEX `transcript_id` (`transcript_id` ASC) VISIBLE,
-  INDEX `notes_id` (`notes_id` ASC) VISIBLE,
-  INDEX `audio_id` (`audio_id` ASC) VISIBLE,
-  INDEX `highlights_id` (`highlights_id` ASC) VISIBLE,
-  CONSTRAINT `project_ibfk_1`
-    FOREIGN KEY (`video_id`)
-    REFERENCES `scribe`.`user` (`id`),
-  CONSTRAINT `project_ibfk_2`
-    FOREIGN KEY (`transcript_id`)
-    REFERENCES `scribe`.`user` (`id`),
-  CONSTRAINT `project_ibfk_3`
-    FOREIGN KEY (`notes_id`)
-    REFERENCES `scribe`.`user` (`id`),
-  CONSTRAINT `project_ibfk_4`
-    FOREIGN KEY (`audio_id`)
-    REFERENCES `scribe`.`user` (`id`),
-  CONSTRAINT `project_ibfk_5`
-    FOREIGN KEY (`highlights_id`)
-    REFERENCES `scribe`.`user` (`id`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_unicode_520_ci;
+  KEY `media_project_FK` (`project_id`),
+  CONSTRAINT `media_project_FK` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+--
+-- Table structure for table `project`
+--
 
-SET SQL_MODE=@OLD_SQL_MODE;
-SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
-SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
+DROP TABLE IF EXISTS `project`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `project` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(64) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `project_user_FK` (`user_id`),
+  CONSTRAINT `project_user_FK` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `user`
+--
+
+DROP TABLE IF EXISTS `user`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `user` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `email` varchar(64) NOT NULL,
+  `password_hash` varchar(256) NOT NULL,
+  `name` varchar(30) DEFAULT NULL,
+  `disabled` tinyint(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping routines for database 'scribe'
+--
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2024-03-19  0:34:49
+
+SELECT * FROM mysql.user;
+UPDATE mysql.user SET Password=PASSWORD('averystrongpassword') WHERE User='scribe_admin';
+
+PRINT 'the script has run'
