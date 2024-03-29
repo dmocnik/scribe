@@ -9,6 +9,7 @@
 try:
     import os # General
     import PIL.Image # Image processing
+    import base64 # Base64 encoding
     from rich import print as rich_print # Pretty print
     from rich.traceback import install # Pretty traceback
     install() # Install traceback
@@ -39,12 +40,24 @@ class ai_inference:
             # Create gemini instance
             genai.configure(api_key=self.api_key)
             self.model = genai.GenerativeModel(self.model_name)
+        elif model_category == "gpt":
+            # Load imports for gpt usage
+            import openai
+            import requests
+            # API key required
+            self.load_api_key(api_key)
+            # Create OpenAI instance
+            self.model = openai.OpenAI(api_key=self.api_key)
         else:
             print(f"[ERROR] Model {model_category} and/or {model_name} is not found")
             return False
         # Show completion message
         print('[INFO] AI inference object init successful')
-        
+    
+    def encode_image(self, image_path):
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
+    
     def load_api_key(self, api_key):
         # Set api key
         self.api_key = str(api_key)
@@ -56,13 +69,71 @@ class ai_inference:
                 print(f"[ERROR] Failed to get API key from environment vars. Output: {str(e)}")
                 return False
     
+    def add_chat(self, prompt, response="", init_system_message=""):
+        # Add system message to model
+        if self.model_category == "gemini":
+            # If user includes response here, gemini cannot use that and we should warn
+            if response != "":
+                print("[WARNING] Gemini model does not support response in chat message. Gemini will autogenerate a response for this.")
+            # Add user prompt
+            print(f"[AI] Adding user prompt '{prompt}'")
+            # If chat session not initialized, create it
+            if not hasattr(self, 'chat_session'):
+                self.chat_session = self.model.start_chat()
+            response = self.chat_session.send_message(prompt)
+            print(f"[AI] Adding response '{response.text}'")
+            return True
+        elif self.model_category == "gpt":
+            # Add user prompt
+            temp_system = {"role": "system", "content": init_system_message}
+            temp_prompt = {"role": "user", "content": prompt}
+            temp_response = {"role": "assistant", "content": response}
+            if not hasattr(self, 'chat_session'):
+                # Create new
+                self.chat_session = []
+            if init_system_message != "":
+                print(f"[AI] Adding system message '{init_system_message}'")
+                self.chat_session.append(temp_system)
+            print(f"[AI] Adding user prompt '{prompt}'")
+            self.chat_session.append(temp_prompt)
+            if response != "":
+                print(f"[AI] Adding response '{response}'")
+                self.chat_session.append(temp_response)
+            return True
+        else:
+            print(f"[ERROR] Unknown model {self.model_category} or {self.model_name}")
+            return False
+
     def generate_text(self, prompt, max_chars=0, stop_char=None):
         print(f"[AI] Asking model to generate text based on prompt '{prompt}'")
         # Generate text based on model
         if self.model_category == "gemini":
+            # Check if chat session exists
+            if not hasattr(self, 'chat_session'):
+                # Start new chat_session with the prompt
+                print("[AI] Starting new chat session as one does not exist")
+                self.chat_session = self.model.start_chat()
             # Generate text
-            response_obj = self.model.generate_content(prompt)
+            response_obj = self.chat_session.send_message(prompt)
             response = response_obj.text # Get text in response
+        elif self.model_category == "gpt":
+            # Check if chat session exists
+            if not hasattr(self, 'chat_session'):
+                # Start new chat_session with the prompt
+                print("[AI] Starting new chat session as one does not exist")
+                self.chat_session = [{"role": "system", "content": "You are an assistant, designed to accurately answer questions and follow instructions to the best of your ability, without saying any unnecessary outputs."}]
+            # Add prompt to chat session
+            temp_prompt = {"role": "user", "content": prompt}
+            self.chat_session.append(temp_prompt)
+            # Generate text
+            response_obj = self.model.chat.completions.create(
+                model=self.model_name,
+                messages=self.chat_session
+            )
+            response = response_obj.choices[0].message.content
+            # Add response to chat session
+            temp_response = {"role": "assistant", "content": response}
+            self.chat_session.append(temp_response)
         else:
             print(f"[ERROR] Unknown model {self.model_category} or {self.model_name}")
             return False
@@ -79,7 +150,7 @@ class ai_inference:
         # Return response
         return response
 
-    def generate_text_with_image(self, prompt, image_path, max_chars=0, stop_char=None):
+    def ask_image(self, prompt, image_path, max_chars=0, stop_char=None):
         # Check if image path exists
         if not os.path.exists(os.path.join(image_path)):
             print(f"[ERROR] Image path {image_path} does not exist")
@@ -97,6 +168,16 @@ class ai_inference:
             response_obj = self.model.generate_content([prompt, input_image])
             response_obj.resolve() # Wait for response
             response = response_obj.text # Get text in response
+        elif self.model_category == "gpt":
+            # Retrieve image
+            input_image = self.encode_image(os.path.join(image_path))
+            # Generate text with image
+            response_obj = self.model.chat.completions.create(
+                model="gpt-4-vision-preview",
+                messages=[{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{input_image}",},},],}],
+                max_tokens=300
+            )
+            response = response_obj.choices[0].message.content
         else:
             print(f"[ERROR] Unknown model {self.model_category} or {self.model_name}")
             return False
