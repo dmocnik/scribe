@@ -35,7 +35,7 @@ jobs:
       run: |
         docker-compose -f docker-compose.yaml config > docker-stack.yml
         docker buildx create --use
-        docker buildx build --push --platform linux/amd64,linux/arm64 \
+        docker buildx build --push --platform linux/amd64 \
           --tag mwcurtis20/scribe_app:latest \
           --tag mwcurtis20/scribe_app:${{ github.sha }} \
           --file Dockerfile .
