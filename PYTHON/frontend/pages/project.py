@@ -35,16 +35,16 @@ async def content(client, id, new):
         if value == 'video':
             preview_area.clear()
             with preview_area:
-                ui.video('https://www.w3schools.com/html/mov_bbb.mp4', loop=True).classes('w-full h-fit')
+                ui.video('https://www.w3schools.com/html/mov_bbb.mp4', loop=True).classes('h-full w-max').style('object-fit: contain;')
         elif value == 'transcription':
             preview_area.clear()
             with preview_area:
-                transcript = ui.log()
-                transcript.push('This is an exmaple of a transcription. It will be generated automatically from the video.').classes('w-full h-full')
+                transcript = ui.log().classes('w-full h-full')
+                transcript.push('This is an exmaple of a transcription. It will be generated automatically from the video.')
         elif value == 'notes':
             preview_area.clear()
             with preview_area:
-                ui.html(f'<embed src="https://www.rd.usda.gov/sites/default/files/pdf-sample_0.pdf" type="application/pdf" width="100%" height="100%">').classes('w-full h-fit').style('object-fit: cover;')
+                ui.html(f'<embed src="https://www.rd.usda.gov/sites/default/files/pdf-sample_0.pdf" type="application/pdf" width="100%" height="100%">').classes('w-full h-full')
     
     async def edit_name(action=None):
         global editing
@@ -85,10 +85,9 @@ async def content(client, id, new):
 
     header = ui.header(elevated=True).classes('items-center justify-between')
     with header: # Create the header
-        #ui.label('📝').style('font-size: 1.5rem;')
         ui.link('📝', '/').style('font-size: 1.5rem;').tooltip('Home')
         proj_name = ui.label('Untitled project').style('font-size: 1.5rem;')
-        proj_name_input = ui.input('Untitled project').props('outlined filled dense standout').on('keydown.enter', lambda: edit_name(False))
+        proj_name_input = ui.input('Project Name').props('filled dense standout label-color="white"').on('keydown.enter', lambda: edit_name(False))
         proj_name_input.set_visibility(False)
         proj_name_edit_btn = ui.button(on_click=lambda: edit_name(True), icon='edit').props('flat round text-color="white"')
         ui.space()
