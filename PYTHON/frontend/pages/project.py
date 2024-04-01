@@ -7,7 +7,8 @@ async def logout():
     app.storage.user.update({'notifications': 'logout'})
     ui.open('/login')
 
-async def content(client, id, new):
+# For now new and name are stored in URL, later they will be stored in the NiceGUI storage
+async def content(client, id, new, name):
     async def upload_file():
         async def handle_upload(e: events.UploadEventArguments):
             filename = e.name
@@ -71,7 +72,7 @@ async def content(client, id, new):
             return
     
     if id is None:
-        ui.label('Not a project bruh')
+        ui.label('Project ID not given')
         return
 
     bg_image = "https://images5.alphacoders.com/707/707888.jpg" # Set the background image
@@ -87,7 +88,9 @@ async def content(client, id, new):
     with header: # Create the header
         ui.link('📝', '/').style('font-size: 1.5rem;').tooltip('Home')
         proj_name = ui.label('Untitled project').style('font-size: 1.5rem;')
+        proj_name.set_text(name)
         proj_name_input = ui.input('Project Name').props('filled dense standout label-color="white"').on('keydown.enter', lambda: edit_name(False))
+        proj_name_input.set_value(name)
         proj_name_input.set_visibility(False)
         proj_name_edit_btn = ui.button(on_click=lambda: edit_name(True), icon='edit').props('flat round text-color="white"')
         ui.space()
