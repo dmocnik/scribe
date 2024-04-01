@@ -4,7 +4,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from nicegui import app, Client
 
 unrestricted_page_routes = {'/login',
-                            '/verify-account'}
+                            '/verify-account',
+                            '/project'
+                            '/'}
 
 class ScribeAuthMiddleware(BaseHTTPMiddleware):
 

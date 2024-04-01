@@ -1,6 +1,6 @@
-from nicegui import ui, app
+from nicegui import ui, app, Client
 from middleware import ScribeAuthMiddleware
-from pages import login, verify_account, index
+from pages import login, verify_account, index, project
 
 # TODO
 # Make it react to screen size changes better
@@ -43,5 +43,10 @@ async def _login():
 async def _verify_account(email: str = None, code: str = None, intent: str = None):
     await check_notifications()
     await verify_account.content(email, code, intent)
+
+@ui.page('/project')
+async def _project(client: Client, id: str = None, new: bool = False):
+    await check_notifications()
+    await project.content(client, id, new)
 
 ui.run(dark=True, title='Scribe', favicon='📝', storage_secret='this_is_a_secret', host='0.0.0.0', port=8080, show=False)
