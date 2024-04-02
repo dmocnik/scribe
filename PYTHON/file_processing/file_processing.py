@@ -20,7 +20,7 @@ install() # Install traceback
 maindirectory = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 
 # Function to take in a text file and spit out notes created using ai model
-def createTopicList(fullText: str, model_category: str, model_name: str, api_key:str, chunk_size=3000, variance=100):
+def generateNotes(fullText: str, model_category: str, model_name: str, api_key:str, chunk_size=3000, variance=100):
     """
     Function to take in a string of text and spit out notes created using ai model
 
@@ -42,12 +42,12 @@ def createTopicList(fullText: str, model_category: str, model_name: str, api_key
     # System prompts for the ai models
     systemprompt = "You are NotesGPT, an AI language model skilled at creating detailed, concise, and easy-to-understand lists of topics and sub topics, when provided with a passage or transcript, your task is to: \n\nstart the list with a blank line\n\nCreate advanced bullet-point lists of topics and sub topics highlighting import subjects within the text.\n\ninclude all essential topics to the subject of the text, such as key ideas, concepts, which should be bolded with asterisks.\n\nRemove any extraneous language, focusing on the critical aspects of the passage or transcript.\n\nstrictly base your list of topics and sub topics on the provided information, without adding any external information. \n\nSeparate each main topic with a new line\n\nEnd the list with new blank line"
 
-    systemprompt2 = "you are detective dupe, an AI language model skilled at finding dupes from a list of topics and sub topics, returning the best list free of dupes and keeping only one instance of the topics and subtopics and maintaining the correct information. Your task is to:\n\n- Start the list with a blank line\n\n- Clean this list up of duplicate entries of topics and sub topics maintaining the proper order of things and where they belong\n\n- Keep the topics and sub topics as original to the given text as possible, do not reword or change the content that is kept after cleaning\n\n- Do not remove any non duplicate information, remove duplicated entries, Keep an order of the topics and sub topics do not misplace or re assign topics to one they do not belong to\n\n- Only bold main topics not subtopics, and Separate each main topic with a blank new line\n\n- End the list with new blank line"
+    systemprompt2 = "You are detective dupe, an AI language model skilled at finding dupes from a list of topics and sub topics, returning the best list free of dupes and keeping only one instance of the topics and subtopics and maintaining the correct information. Your task is to:\n\n- Start the list with a blank line\n\n- Clean this list up of duplicate entries of topics and sub topics maintaining the proper order of things and where they belong\n\n- Keep the topics and sub topics as original to the given text as possible, do not reword or change the content that is kept after cleaning\n\n- Do not remove any non duplicate information, remove duplicated entries, Keep an order of the topics and sub topics do not misplace or re assign topics to one they do not belong to\n\n- Only bold main topics not subtopics, and Separate each main topic with a blank new line\n\n- End the list with new blank line"
 
-    systemprompt3 = "You are scholarGPT, a very smart and knowledgeable AI language model skilled at providing detailed information when given a list of topics and their subtopics, returning very informative and detailed explanations of each topic given and their subtopics. Your task is to: \n\n- Start the list with a blank line to signify start of the list\n\n- Take in a topic and give an explanation of the topic in a detailed and informative manner\n\n- provide informative and detailed explanations of the subtopics, giving any detail necessary to provide a full understanding \n\n- Do not provide unnecessary information to the topic, or unrelated information to what is being discussed. Supplementary information is allowed only if it helps in the explanation of a topic or subtopic\n\n- If a topic is something you cannot provide more information on like logistical information, reuse the original points provided instead\n\n- Separate each main topic with a blank new line\n\n- End the content with \n (new line) "
+    systemprompt3 = "You are scholarGPT, a very smart and knowledgeable AI language model skilled at providing detailed information when given a list of topics and their subtopics, returning very informative and detailed explanations of each topic given and their subtopics. Your task is to: \n\n- Start the list with a blank line to signify start of the list\n\n- Take in a topic and give an explanation of the topic in a detailed and informative manner\n\n- provide informative and detailed explanations of the subtopics, giving any detail necessary to provide a full understanding \n\n- Do not provide unnecessary information to the topic, or unrelated information to what is being discussed. Supplementary information is allowed only if it helps in the explanation of a topic or subtopic\n\n- If a topic is something you cannot provide more information on like logistical information, reuse the original points provided instead\n\n- Separate each main topic with a blank new line\n\n- End the content with new line "
     
     # Variables for the chunking of the text and some parameters for the ai model
-    temp = 0.75
+    temp = 0.5
     p = 0.95
     result = []
     current_chunk = ""
@@ -56,7 +56,7 @@ def createTopicList(fullText: str, model_category: str, model_name: str, api_key
     sentences = re.split(r'(?<=[.!?]) +', fullText)
 
     # Adding the system prompt to the ai model for summarizing
-    ai_completion.add_chat(systemprompt)
+    ai_completion.add_chat(systemprompt, temperature=temp)
 
     # Loop to chunk the text into smaller parts for the ai model to summarize
     for sentence in sentences:
@@ -64,7 +64,7 @@ def createTopicList(fullText: str, model_category: str, model_name: str, api_key
         if len(current_chunk) + len(sentence) > chunk_size + variance and current_chunk:
         # Add the current chunk to the chunks list
 
-            compl = ai_completion.generate_text(current_chunk)
+            compl = ai_completion.generate_text(current_chunk, temperature=temp)
 
             if compl:
                 result.append(compl)
@@ -80,7 +80,7 @@ def createTopicList(fullText: str, model_category: str, model_name: str, api_key
      # Add the last chunk if it's not empty
     if current_chunk:
 
-        compl = ai_completion.generate_text(current_chunk)
+        compl = ai_completion.generate_text(current_chunk, temperature=temp)
     
         if compl:
             result.append(compl)
@@ -95,10 +95,10 @@ def createTopicList(fullText: str, model_category: str, model_name: str, api_key
         listprecleaning += '\n' + r
 
     # prompt to clean the list of dupes using ai model
-    ai_completion2.add_chat(systemprompt2)
+    ai_completion2.add_chat(systemprompt2, temperature=temp)
 
     # cleaning the list using the Ai model completion
-    finalList = ai_completion2.generate_text(listprecleaning)
+    finalList = ai_completion2.generate_text(listprecleaning, temperature=temp)
 
     # splitting the list into chunks of topics again seperating by new line
     finalListChunked = finalList.split("\n\n")
@@ -119,10 +119,10 @@ def createTopicList(fullText: str, model_category: str, model_name: str, api_key
         # Modulo condition to check if the index is divisible by 10 to call the ai model object creation again
         if (i % 10 == 0):
             ai_completion3 = ai(model_category, model_name, api_key)
-            ai_completion3.add_chat(systemprompt3)
-            finalNotes += '\n' + ai_completion3.generate_text(l)
+            ai_completion3.add_chat(systemprompt3, temperature=temp)
+            finalNotes += '\n' + ai_completion3.generate_text(l, temperature=temp)
         else: 
-            finalNotes += '\n' + ai_completion3.generate_text(l)
+            finalNotes += '\n' + ai_completion3.generate_text(l, temperature=temp)
 
         i+=1
     
