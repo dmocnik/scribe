@@ -18,9 +18,9 @@
             "type": "debugpy",
             "request": "launch",
             "module": "uvicorn",
-            "cwd": "${workspaceFolder}/PYTHON",
+            //"cwd": "${workspaceFolder}/PYTHON",
             "console": "integratedTerminal",
-            "args": ["api.app:app", "--reload"],
+            "args": ["PYTHON.api.app:app", "--reload"],
             "justMyCode": true,
             "consoleTitle": "Backend - FastAPI"
         }

@@ -11,6 +11,7 @@ from PYTHON.api.config import settings
 from PYTHON.smtp.smtp_module import scribe_smtp
 from uuid import UUID, uuid4
 import string
+from urllib.parse import quote_plus
 
 account = APIRouter()
 
@@ -79,7 +80,7 @@ def password_request_reset(response: Response, email: str = Body(embed=True)):
     print('added code to db')
 
     data = {
-        "reset_link": settings.FRONTEND_URL + "/reset-password?email=" + email + "&code=" + code 
+        "reset_link": settings.FRONTEND_URL + "/reset-password?email=" + quote_plus(email) + "&code=" + code 
     }
 
     if user_db[1] == "":
@@ -266,7 +267,7 @@ async def create_account(response: Response, email: str = Body(), password: str 
     else:
         data["name"] = name
 
-    data["verification_link"] = settings.FRONTEND_URL + "/verify-account?email=" + email + "&code=" + code
+    data["verification_link"] = settings.FRONTEND_URL + "/verify-account?email=" + quote_plus(email) + "&code=" + code
 
     # send an email
     smtp_driver = scribe_smtp(settings.smtp_server, settings.smtp_port, settings.smtp_username, settings.password)
@@ -325,7 +326,7 @@ def activate_account(response: Response, email: str = Body(), code: str = Body()
         matched_codes = [x for x in result if sha256_crypt.verify(code, x[0])]
 
     if not len(matched_codes):
-        response.status_code = 410
+        response.status_code = 401
         return
 
     # set disabled to True

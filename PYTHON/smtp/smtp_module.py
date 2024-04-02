@@ -44,7 +44,7 @@ class scribe_smtp:
         # Send an email using one of our template files
         # Read the template file
         try:
-            with open(os.path.join(maindirectory, "templates", f"{template}"), "r") as f:
+            with open(os.path.join(maindirectory, "templates", f"{template}"), "r", encoding='utf-8') as f:
                 template_text = f.read()
         except Exception as e:
             print(f"[ERROR] Failed to read template file. Output: {str(e)}")

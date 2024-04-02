@@ -1,16 +1,13 @@
 from nicegui import ui, app
 from nicegui.events import TableSelectionEventArguments
 from config import DevelopmentConfig as config
+from datetime import datetime
 
 #TODO
-# Fix the height of the panels
-# Fix the background acting fucky when a dialog opens
 # Integrate with the backend
-# Make it prettier
-# Make resizing the window not fucky
+# Make resizing the window not funky
 # Potentially switch to single-column format with tabs on top instead of to side
-# Disable buttons if no projects
-# Parse the date maybe
+# Parse the date
 
 API_URL = config.API_URL
 PW_UPDATE_URL = f'{API_URL}/password/update'
@@ -21,7 +18,8 @@ project_columns = [ # For now we have name, status, and last modified
     {'name': 'last_modified', 'label': 'Last Modified', 'field': 'last_modified', 'sortable': True},
 ]
 
-fake_projects = [  # Some sample data
+# Some sample data
+""" fake_projects = [  
     {'name': 'Project 1', 'status': 'Processing', 'last_modified': '2022-01-01'},
     {'name': 'Project 2', 'status': 'Ready', 'last_modified': '2022-01-02'},
     {'name': 'Project 3', 'status': 'Processing', 'last_modified': '2022-01-03'},
@@ -30,7 +28,9 @@ fake_projects = [  # Some sample data
 fake_trashed_projects = [
     {'name': 'Project 5', 'status': 'Trashed', 'last_modified': '2022-01-05'},
     {'name': 'Project 4', 'status': 'Trashed', 'last_modified': '2022-01-04'},
-]
+] """
+fake_projects = []
+fake_trashed_projects = []
 
 async def logout():
     app.storage.user.update({'authenticated': False})
@@ -58,7 +58,7 @@ async def content():
             del_per_btn.props(remove='disable')
 
     async def new_project():
-        with ui.dialog() as new_project_dialog, ui.card().classes('w-1/2'): # Create a dialog for the new project name
+        with ui.dialog() as new_project_dialog, ui.card().classes('w-1/2').style(replace=''): # Create a dialog for the new project name
             with ui.row().classes('w-full items-center'):
                 ui.label('New Project').classes('text-h5')
                 ui.space()
@@ -68,7 +68,6 @@ async def content():
                                   validation={'Cannot be empty': lambda value: len(value) > 0},
                                   on_change=lambda value: create_btn.props('disable') if len(value.value) == 0 else create_btn.props(remove='disable')) \
                                     .classes('w-full') \
-                                    .props('outlined') \
                                     .on('keydown.enter', lambda: new_project_dialog.submit(name_input.value) if name_input.validate() else None)
 
             with ui.row().classes('w-full'):
@@ -77,12 +76,13 @@ async def content():
 
         name = await new_project_dialog # Wait for the dialog to close and get the name
         if name: # If user gave a name, create the project
-            projects_table.add_rows({'name': name, 'status': 'Waiting for Upload', 'last_modified': '2022-01-01'})
+            date_str = datetime.now().strftime('%B %e, %Y')
+            projects_table.add_rows({'name': name, 'status': 'Waiting for Upload', 'last_modified': date_str})
             ui.notify(f'Project "{name}" created!', position='top-right', close_button=True, type='positive')
 
     async def rename_project():
         old_name = projects_table.selected[0]['name'] # Get the old name
-        with ui.dialog() as rename_project_dialog, ui.card().classes('w-1/2'): # Create a dialog for the new project name
+        with ui.dialog() as rename_project_dialog, ui.card().classes('w-1/2').style(replace=''): # Create a dialog for the new project name
             with ui.row().classes('w-full items-center'):
                 ui.label('Rename Project').classes('text-h5')
                 ui.space()
@@ -96,7 +96,6 @@ async def content():
                 validation={'Cannot be empty': lambda e: len(e) > 0},
                 on_change=lambda e: confirm_rename_btn.props('disable') if len(e.value) == 0 else confirm_rename_btn.props(remove='disable')) \
                     .classes('w-full') \
-                    .props('outlined') \
                     .on('keydown.enter', lambda: rename_project_dialog.submit(new_name_input.value) if new_name_input.validate() else None)
             new_name_input.set_value(old_name) # Pre-fill the input with the old name
             
@@ -161,7 +160,7 @@ async def content():
         else:
             text = f'Are you sure you want to delete these {num_deleted} projects? This cannot be undone!'
 
-        with ui.dialog() as permanently_delete_dialog, ui.card().classes('w-1/2'):  # Create a dialog for the delete confirmation
+        with ui.dialog() as permanently_delete_dialog, ui.card().classes('w-1/2').style(replace=''):  # Create a dialog for the delete confirmation
             with ui.row().classes('w-full items-center'):
                 ui.label('Delete Permanently').classes('text-h5')
                 ui.space()
@@ -184,40 +183,44 @@ async def content():
             else:
                 ui.notify(f'Restored {num_deleted} projects', position='top-right', type='positive')
 
+    async def open_project(name):
+        ui.navigate.to(f'/project?id=testing&new=True&name={name}', new_tab=True)
+        return
+
     # Main UI
-    bg_image = "https://images5.alphacoders.com/707/707888.jpg" # Set the background image
-    ui.query('body').style(f'''
-                           background-image: url("{bg_image}");
-                           background-size: cover;
-                           background-repeat: no-repeat;
-                           ''')
-    
+    ui.query('.nicegui-content').classes('h-[calc(100vh-74px)]') # yuck https://github.com/zauberzeug/nicegui/discussions/2703#discussioncomment-8820280
+
     with ui.header(elevated=True).classes('items-center justify-between'): # Create the header
-        ui.label('📝 Scribe').style('font-size: 1.5rem;')
+        ui.label('📝').style('font-size: 1.5rem;')
+        ui.label('My Projects').style('font-size: 1.5rem; font-weight: 500;')
         ui.space()
-        ui.button(on_click=logout, icon='logout')
+        ui.button(on_click=logout, icon='logout').props('flat round text-color="white"').tooltip('Sign Out')
 
-    ui.label('My Projects').style('font-size: 3.75rem; font-weight: 500;') # Create the title
-
-    main_div = ui.row().classes('w-full gap-3 h-dvh flex-nowrap') # Create the main div to contain the sidebar and the picker
+    main_div = ui.row().classes('w-full gap-3 h-screen flex-nowrap') # Create the main div to contain the sidebar and the picker
     with main_div:
-        sidebar = ui.card().classes('w-[250px] h-screen backdrop-blur-lg').style('background-color: #1d1d1dd9;')
+        sidebar = ui.card().classes('w-[250px] h-full backdrop-blur-lg')
         with sidebar:
             with ui.tabs(on_change=deselect_all).props('vertical inline-label').classes('w-full') as tabs: #Create the tabs for the sidebar
                 projects = ui.tab('Projects', icon='folder')
                 trashed = ui.tab('Trashed', icon='delete')
 
-        picker = ui.card().classes('w-full h-screen backdrop-blur-lg').style('background-color: #1d1d1dd9;') # Create a card to contain the tab panels
+        picker = ui.card().classes('w-full h-full backdrop-blur-lg') # Create a card to contain the tab panels
         with picker:
             with ui.tab_panels(tabs, value=projects) \
                 .props('vertical') \
-                .classes('w-full backdrop-blur-lg') \
-                .style('background-color: #1d1d1dd9;'): #Create the tab panel areas
+                .classes('w-full backdrop-blur-lg'): #Create the tab panel areas
             
-                with ui.tab_panel(projects).classes('backdrop-blur-lg p-0').style('background-color: #1d1d1dd9;'):
+                with ui.tab_panel(projects).classes('backdrop-blur-lg p-0'):
+                    #Create the projects table
                     projects_table = ui.table(columns=project_columns, rows=fake_projects, row_key='name', selection='multiple', on_select=handle_projects_selection) \
                         .classes('w-full backdrop-blur-lg') \
-                        .style('background-color: #1d1d1dd9;') # Create the table for the projects
+                        .on('row-dblclick', lambda e: open_project(e.args[1]['name']))
+                    
+                    projects_table.add_slot('no-data', '''
+                                            <div class="full-width column flex-center q-pa-md">
+                                                <q-icon size="xl" name="warning" />
+                                                <p>No projects found. Click "New Project" to create one.</p>
+                                            </div>''') # Convert this to the NiceGUI function later
                     
                     with projects_table:
                         with projects_table.add_slot('top-right'): # Add the search bar
@@ -233,8 +236,14 @@ async def content():
 
                 with ui.tab_panel(trashed).classes('p-0'):
                     trashed_table = ui.table(columns=project_columns, rows=fake_trashed_projects, row_key='name', selection='multiple', on_select=handle_trashed_selection) \
-                        .classes('w-full backdrop-blur-lg') \
-                        .style('background-color: #1d1d1dd9;') # Create the table for the trashed projects
+                        .classes('w-full backdrop-blur-lg') # Create the table for the trashed projects
+                    
+                    trashed_table.add_slot('no-data', '''
+                                            <div class="full-width column flex-center q-pa-md">
+                                                <q-icon size="xl" name="warning" />
+                                                <p>No projects found.</p>
+                                            </div>''')
+                    
                     with trashed_table:
                         with trashed_table.add_slot('top-right'): # Add the search bar
                             with ui.input(placeholder='Search').props('type=search clearable').bind_value(trashed_table, 'filter').add_slot('append'):
