@@ -9,7 +9,7 @@ PW_RESET_URL = f'{API_URL}/password/reset'
 DEBOUNCE_TIME = 500
 
 async def content(client: Client, email: str = None, code: str = None):
-    with ui.dialog().props('persistent') as spinner_dialog, ui.card():
+    with ui.dialog().props('persistent') as spinner_dialog, ui.card().style(replace=''):
             ui.spinner(size='lg')
 
     async def verify_code():
@@ -23,7 +23,7 @@ async def content(client: Client, email: str = None, code: str = None):
                 ui.notify('An error occurred', position='top-right', close_button=True, type='negative')
             change_pw_btn.props(remove='loading')
 
-        with ui.dialog().props('persistent') as pw_dialog, ui.card().classes('w-1/2'):
+        with ui.dialog().props('persistent') as pw_dialog, ui.card().classes('w-1/2').style(replace=''):
             with ui.row().classes('w-full items-center'):
                 ui.label('New Password').classes('text-h5')
                 ui.space()
@@ -40,7 +40,7 @@ async def content(client: Client, email: str = None, code: str = None):
                     'Password must contain a number': lambda value: re.search(r'[0-9]', value),
                     'Passwords do not match': lambda value: value == confirm_password_input.value
                 }) \
-                .props(f'outlined debounce="{DEBOUNCE_TIME}"') \
+                .props(f'debounce="{DEBOUNCE_TIME}"') \
                 .classes('w-full') \
                 .tooltip('Password must be at least 8 characters long, and contain an uppercase letter, a lowercase letter, and a number.')
             
@@ -48,7 +48,7 @@ async def content(client: Client, email: str = None, code: str = None):
                 password=True,
                 password_toggle_button=True,
                 validation= lambda value: 'Passwords do not match' if not password_input.value == value else None) \
-                .props(f'outlined debounce="{DEBOUNCE_TIME}"') \
+                .props(f'debounce="{DEBOUNCE_TIME}"') \
                 .classes('w-full')
 
             with ui.row().classes('w-full'):
@@ -76,21 +76,14 @@ async def content(client: Client, email: str = None, code: str = None):
         else:
             ui.notify('An error occurred', position='top-right', close_button=True, type='negative')
         
-    bg_image = "https://images5.alphacoders.com/707/707888.jpg"
-    ui.query('body').style(f'''
-                            background-image: url("{bg_image}");
-                            background-size: cover;
-                            background-repeat: no-repeat;
-                            ''')
     ui.query('.nicegui-content').classes('p-0')
     with ui.column().classes('w-full justify-center items-center h-screen'):
-        ui.label('Let\'s get back into your account.').style('font-size: 3.75rem; font-weight: 500;')
+        ui.label('Let\'s get back into your account.').style('font-size: 3.75rem; font-weight: 600;')
         ui.label('Check your email! We\'ve sent you a verification code.')
         
-        with ui.card().classes('w-1/2 p-0 gap-0 flex-row flex-nowrap backdrop-blur-lg').style('background-color: #1d1d1dd9;'):
+        with ui.card().classes('w-1/2 p-0 gap-0 flex-row flex-nowrap backdrop-blur-lg'):
             with ui.column().classes('w-1/2 p-5'):
                 code_input = ui.input('Verification code') \
-                    .props('outlined') \
                     .classes('w-full') \
                     .on('keydown.enter', verify_code)
                 if code:

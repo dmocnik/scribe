@@ -62,7 +62,7 @@ async def content():
                     ui.notify('An error occurred', position='top-right', close_button=True, type='negative')
                 sign_up_btn.props(remove='loading')
 
-        with ui.dialog() as sign_up_dialog, ui.card().classes('w-1/2'):
+        with ui.dialog() as sign_up_dialog, ui.card().classes('w-1/2').style(replace=''):
             with ui.row().classes('w-full items-center'):
                 ui.label('Sign up').classes('text-h5')
                 ui.space()
@@ -70,7 +70,7 @@ async def content():
 
             email_input = ui.input('Email address',
                 validation=lambda value: 'Please enter a valid email' if not re.match(EMAIL_REGEX, value) else None) \
-                .props(f'outlined debounce="{DEBOUNCE_TIME}"') \
+                .props(f'debounce="{DEBOUNCE_TIME}"') \
                 .classes('w-full')
             
             password_input = ui.input('Password',
@@ -83,7 +83,7 @@ async def content():
                     'Password must contain a number': lambda value: re.search(r'[0-9]', value),
                     'Passwords do not match': lambda value: value == confirm_password_input.value
                 }) \
-                .props(f'outlined debounce="{DEBOUNCE_TIME}"') \
+                .props(f'debounce="{DEBOUNCE_TIME}"') \
                 .classes('w-full') \
                 .tooltip('Password must be at least 8 characters long, and contain an uppercase letter, a lowercase letter, and a number.')
             
@@ -91,12 +91,12 @@ async def content():
                 password=True,
                 password_toggle_button=True,
                 validation= lambda value: 'Passwords do not match' if not password_input.value == value else None) \
-                .props(f'outlined debounce="{DEBOUNCE_TIME}"') \
+                .props(f'debounce="{DEBOUNCE_TIME}"') \
                 .classes('w-full')
             
             name_input = ui.input('Name (optional)', 
                 validation=lambda value: 'Too long' if len(value) > 50 else None) \
-                .props(f'outlined debounce="{DEBOUNCE_TIME}"') \
+                .props(f'debounce="{DEBOUNCE_TIME}"') \
                 .classes('w-full')
             
             with ui.row().classes('w-full'):
@@ -123,7 +123,7 @@ async def content():
                     ui.notify('An account with that email does not exist', position='top-right', close_button=True, type='negative') """
                 send_email_btn.props(remove='loading')
 
-        with ui.dialog() as forgot_pw_dialog, ui.card().classes('w-1/2'):
+        with ui.dialog() as forgot_pw_dialog, ui.card().classes('w-1/2').style(replace=''):
             with ui.row().classes('w-full items-center'):
                 ui.label('Forgot/Reset Password').classes('text-h5')
                 ui.space()
@@ -132,7 +132,7 @@ async def content():
             ui.label('If you cannot remember or wish to reset your password, please enter your email address and we will send you a link to do so.')
             email_input = ui.input('Email address',
                     validation=lambda value: 'Please enter a valid email' if not re.match(EMAIL_REGEX, value) else None) \
-                    .props(f'outlined debounce="{DEBOUNCE_TIME}"') \
+                    .props(f'debounce="{DEBOUNCE_TIME}"') \
                     .classes('w-full')
             
             with ui.row().classes('w-full'):
@@ -146,24 +146,16 @@ async def content():
     if app.storage.user.get('authenticated', False):
         return RedirectResponse('/')
     
-    bg_image = "https://images5.alphacoders.com/707/707888.jpg"
-    ui.query('body').style(f'''
-                        background-image: url("{bg_image}");
-                        background-size: cover;
-                        background-repeat: no-repeat;
-                        ''')
     ui.query('.nicegui-content').classes('p-0')
     with ui.column().classes('w-full justify-center items-center h-screen'):
         ui.label('Welcome!').style('font-size: 3.75rem; font-weight: 500;')
         ui.label('Please sign in.')
         
-        with ui.card().classes('w-1/2 p-0 gap-0 flex-row flex-nowrap backdrop-blur-lg').style('background-color: #1d1d1dd9;'):
+        with ui.card().classes('w-1/2 p-0 gap-0 flex-row flex-nowrap backdrop-blur-lg'):
             with ui.column().classes('w-1/2 p-5'):
                 username_input = ui.input('Email address') \
-                    .props('outlined') \
                     .classes('w-full')
                 password_input = ui.input('Password', password=True, password_toggle_button=True) \
-                    .props('outlined') \
                     .classes('w-full') \
                     .on('keydown.enter', try_login)
                 sign_in_btn = ui.button(text='Sign in', icon='login', on_click=try_login)

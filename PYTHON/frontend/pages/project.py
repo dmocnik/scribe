@@ -18,7 +18,7 @@ async def content(client, id, new, name):
             ui.notify(f'Size: {mb:.2f}MB')
             upload_dialog.submit(True)
 
-        with ui.dialog().props('persistent') as upload_dialog, ui.card().classes('w-1/2'): # Create a dialog for the file upload
+        with ui.dialog().props('persistent') as upload_dialog, ui.card().classes('w-1/2').style(replace=''): # Create a dialog for the file upload
             with ui.row().classes('w-full items-center'):
                 ui.label('Upload Source Video').classes('text-h5')
                 ui.space()
@@ -75,37 +75,30 @@ async def content(client, id, new, name):
         ui.label('Project ID not given')
         return
 
-    bg_image = "https://images5.alphacoders.com/707/707888.jpg" # Set the background image
-    ui.query('body').style(f'''
-                           background-image: url("{bg_image}");
-                           background-size: cover;
-                           background-repeat: no-repeat;
-                           ''')
-
     ui.query('.nicegui-content').classes('h-[calc(100vh-74px)]') # yuck https://github.com/zauberzeug/nicegui/discussions/2703#discussioncomment-8820280
 
     header = ui.header(elevated=True).classes('items-center justify-between')
     with header: # Create the header
         ui.link('📝', '/').style('font-size: 1.5rem;').tooltip('Home')
-        proj_name = ui.label('Untitled project').style('font-size: 1.5rem;')
+        proj_name = ui.label('Untitled project').style('font-size: 1.5rem; font-weight: 500;')
         proj_name.set_text(name)
         proj_name_input = ui.input('Project Name').props('filled dense standout label-color="white"').on('keydown.enter', lambda: edit_name(False))
         proj_name_input.set_value(name)
         proj_name_input.set_visibility(False)
         proj_name_edit_btn = ui.button(on_click=lambda: edit_name(True), icon='edit').props('flat round text-color="white"')
         ui.space()
-        ui.button(on_click=logout, icon='logout').props('flat round text-color="white"')
+        ui.button(on_click=logout, icon='logout').props('flat round text-color="white"').tooltip('Sign Out')
 
     with ui.row().classes('w-full flex-nowrap h-full'):
-        with ui.card().classes('w-1/4 h-full backdrop-blur-lg').style('background-color: #1d1d1dd9;'):
+        with ui.card().classes('w-1/4 h-full backdrop-blur-lg'):
             ui.label('Picker').classes('text-h5')
             with ui.row().classes('items-center w-full'):
-                add_media = ui.select({'notes': 'Notes', 'audiobook': 'Audiobook', 'flashcards': 'Flashcards'}, label='Add Media', value='notes').classes('grow').props('outlined')
+                add_media = ui.select({'notes': 'Notes', 'audiobook': 'Audiobook', 'flashcards': 'Flashcards'}, label='Add Media', value='notes').classes('grow')
                 add_media_btn = ui.button(icon='add', on_click=lambda: ui.notify(f'Will generate media of type {add_media.value}')).props('flat round text-color="white"')
             ui.separator()
-            preview_media = ui.select({'video': 'Original Lecture Video', 'transcription': 'Lecture Transcription', 'notes': 'AI-Summarized Notes'}, label='Preview Media', on_change=lambda: change_preview(preview_media.value)).classes('w-full').props('outlined')
+            preview_media = ui.select({'video': 'Original Lecture Video', 'transcription': 'Lecture Transcription', 'notes': 'AI-Summarized Notes'}, label='Preview Media', on_change=lambda: change_preview(preview_media.value)).classes('w-full')
 
-        with ui.card().classes('w-3/4 h-full backdrop-blur-lg').style('background-color: #1d1d1dd9;'):
+        with ui.card().classes('w-3/4 h-full backdrop-blur-lg'):
             ui.label('Preview').classes('text-h5')
             preview_area = ui.element('div').classes('w-full items-center justify-center h-full')
             with preview_area:

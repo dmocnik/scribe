@@ -9,7 +9,7 @@ ACCOUNT_ACTIVATE_URL = f'{API_URL}/account/activate'
 
 async def content(client: Client, email: str = None, code: str = None):
     async def verify_code():
-        with ui.dialog().props('persistent') as spinner_dialog, ui.card():
+        with ui.dialog().props('persistent') as spinner_dialog, ui.card().style(replace=''):
             ui.spinner(size='lg')
         
         spinner_dialog.open()
@@ -28,21 +28,14 @@ async def content(client: Client, email: str = None, code: str = None):
             ui.notify('An error occurred', position='top-right', close_button=True, type='negative')
         spinner_dialog.close()
         
-    bg_image = "https://images5.alphacoders.com/707/707888.jpg"
-    ui.query('body').style(f'''
-                           background-image: url("{bg_image}");
-                           background-size: cover;
-                           background-repeat: no-repeat;
-                           ''')
     ui.query('.nicegui-content').classes('p-0')
     with ui.column().classes('w-full justify-center items-center h-screen'):
-        ui.label('Verify your account!').style('font-size: 3.75rem; font-weight: 500;')
+        ui.label('Verify your account!').style('font-size: 3.75rem; font-weight: 600;')
         ui.label('Check your email! We\'ve sent you a verification code.')
         
-        with ui.card().classes('w-1/2 p-0 gap-0 flex-row flex-nowrap backdrop-blur-lg').style('background-color: #1d1d1dd9;'):
+        with ui.card().classes('w-1/2 p-0 gap-0 flex-row flex-nowrap backdrop-blur-lg'):
             with ui.column().classes('w-1/2 p-5'):
                 code_input = ui.input('Verification code') \
-                    .props('outlined') \
                     .classes('w-full') \
                     .on('keydown.enter', verify_code)
                 if code:
