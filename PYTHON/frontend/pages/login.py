@@ -1,6 +1,5 @@
 from nicegui import ui, app
-import re, asyncio, httpx
-from urllib.parse import quote_plus
+import re, httpx
 from fastapi.responses import RedirectResponse
 
 from config import DevelopmentConfig as config
@@ -16,31 +15,30 @@ PW_RESET_REQUEST_URL = f'{API_URL}/password/reset/request'
 
 async def content():
     async def try_login():
-            sign_in_btn.props('loading')
-            username = username_input.value
-            password = password_input.value
+        sign_in_btn.props('loading')
+        username = username_input.value
+        password = password_input.value
 
-            # response object, pass login url, post body, and cookies from app storage
-            res = await httpx.post(LOGIN_URL, 
-                                json={"email": username, "password": password}, 
-                                headers={"Cookie": f"{app.storage.user.get('cookie')}"})
+        # response object, pass login url, post body, and cookies from app storage
+        async with httpx.AsyncClient() as c:
+            res = await c.post(LOGIN_URL, 
+                            json={"email": username, "password": password}, 
+                            headers={"Cookie": f"{app.storage.user.get('cookie')}"})
 
-            if res.status_code == 200:
-
-                # get cookie from response header
-                cookie = res.headers['Set-Cookie'].split(';')[0]
-                
-                app.storage.user.update({'username': username_input.value,
-                                        'authenticated': True,
-                                        'cookie': cookie})
-                app.storage.user['notifications'] = 'login'
-                path = app.storage.user.pop('referrer_path', '/')
-                ui.open(path)
-            elif res.status_code == 401:
-                ui.notify('Invalid username or password', position='top-right', close_button=True, type='negative')
-            else:
-                ui.notify('An error occurred', position='top-right', close_button=True, type='negative')
-            sign_in_btn.props(remove='loading')
+        if res.status_code == 200:
+            # get cookie from response header
+            cookie = res.headers['Set-Cookie'].split(';')[0]
+            app.storage.user.update({'username': username_input.value,
+                                    'authenticated': True,
+                                    'cookie': cookie})
+            app.storage.user['notifications'] = 'login'
+            path = app.storage.user.pop('referrer_path', '/')
+            ui.open(path)
+        elif res.status_code == 401:
+            ui.notify('Invalid username or password', position='top-right', close_button=True, type='negative')
+        else:
+            ui.notify('An error occurred', position='top-right', close_button=True, type='negative')
+        sign_in_btn.props(remove='loading')
             
     EMAIL_REGEX = r'^[\w+.]+@[a-zA-Z_]+?\.[a-zA-Z]+$'
     DEBOUNCE_TIME = 500
@@ -53,15 +51,16 @@ async def content():
                     'password': password_input.value,
                     'name': name_input.value if name_input.value else None
                 }
-                sign_in_btn.props('loading')
-                res = await httpx.post(ACCOUNT_CREATE_URL, json=user)
+                sign_up_btn.props('loading')
+                async with httpx.AsyncClient() as c:
+                    res = await c.post(ACCOUNT_CREATE_URL, json=user)
                 if res.status_code == 200:
                     sign_up_dialog.submit(user)
                 elif res.status_code == 409:
                     ui.notify('A user with that email already exists', position='top-right', close_button=True, type='negative')
                 else:
                     ui.notify('An error occurred', position='top-right', close_button=True, type='negative')
-                sign_in_btn.props(remove='loading')
+                sign_up_btn.props(remove='loading')
 
         with ui.dialog() as sign_up_dialog, ui.card().classes('w-1/2'):
             with ui.row().classes('w-full items-center'):
@@ -112,9 +111,10 @@ async def content():
         async def try_forgot_pw():
             if email_input.validate() == True:
                 send_email_btn.props('loading')
-                res = await httpx.post(PW_RESET_REQUEST_URL,
-                                    json={"email": email_input.value},
-                                    headers={"Cookie": f"{app.storage.user.get('cookie')}"})
+                async with httpx.AsyncClient() as c:
+                    res = await c.post(PW_RESET_REQUEST_URL,
+                                        json={"email": email_input.value},
+                                        headers={"Cookie": f"{app.storage.user.get('cookie')}"})
                 if res.status_code == 200:
                     forgot_pw_dialog.submit(email_input.value)
                 else:
@@ -141,12 +141,11 @@ async def content():
 
         email = await forgot_pw_dialog
         if email:
-            ui.notify('Email sent!', position='top-right', close_button=True, type='positive')
+            ui.notify('Password reset requested. Check your email!', position='top-right', close_button=True, type='positive')
 
     if app.storage.user.get('authenticated', False):
         return RedirectResponse('/')
     
-    #bg_image = "https://w.wallhaven.cc/full/m9/wallhaven-m965vm.jpg"  #This doesn't load every time for some reason, should probably be served from local file
     bg_image = "https://images5.alphacoders.com/707/707888.jpg"
     ui.query('body').style(f'''
                         background-image: url("{bg_image}");

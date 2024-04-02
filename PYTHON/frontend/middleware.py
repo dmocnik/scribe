@@ -5,8 +5,7 @@ from nicegui import app, Client
 
 unrestricted_page_routes = {'/login',
                             '/verify-account',
-                            '/project'
-                            '/'}
+                            '/reset-password',}
 
 class ScribeAuthMiddleware(BaseHTTPMiddleware):
 

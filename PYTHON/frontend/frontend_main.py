@@ -1,6 +1,6 @@
 from nicegui import ui, app, Client
 from middleware import ScribeAuthMiddleware
-from pages import login, verify_account, index, project
+from pages import login, verify_account, reset_password, index, project
 
 # TODO
 # Make it react to screen size changes better
@@ -22,6 +22,8 @@ async def check_notifications(): # TODO make this be able to handle multiple not
         ui.notify('Successfully logged out!', position='top-right', close_button=True, type='positive')
     if notifications == 'account_create_success':
         ui.notify('Account verified successfully! You are now logged in.', position='top-right', close_button=True, type='positive')
+    if notifications == 'pw_change_success':
+        ui.notify('Password changed successfully! Please login again.', position='top-right', close_button=True, type='positive')
     pass
 
 @ui.page('/')
@@ -40,9 +42,14 @@ async def _login():
     await login.content()
 
 @ui.page('/verify-account')
-async def _verify_account(email: str = None, code: str = None, intent: str = None):
+async def _verify_account(client: Client, email: str = None, code: str = None):
     await check_notifications()
-    await verify_account.content(email, code, intent)
+    await verify_account.content(client, email, code)
+
+@ui.page('/reset-password')
+async def _reset_password(client: Client, email: str = None, code: str = None):
+    await check_notifications()
+    await reset_password.content(client, email, code)
 
 @ui.page('/project')
 async def _project(client: Client, id: str = None, new: bool = False, name: str = None):

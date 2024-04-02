@@ -27,7 +27,7 @@ async def content(client, id, new, name):
                 ui.label('Drag and drop a video here, or press the "+" button to select it manually')
                 #TODO See if there's a better way to style the uploader, possibly make it hidden with custom drag and drop area
                 uploader = ui.upload(max_files=1, on_upload=handle_upload, auto_upload=True).props('accept="video/*"')
-                ui.label('Max file Size: 100MB, Max Duration: 2 hours')
+                ui.label('Max file Size: 4GB, Max Duration: 3 hours')
 
         result = await upload_dialog
         return result
