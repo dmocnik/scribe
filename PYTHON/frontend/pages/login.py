@@ -106,10 +106,7 @@ async def content():
 
         info = await sign_up_dialog
         if info:
-            ui.notify('Account created! Redirecting you...', position='top-right', close_button=True, type='positive')
-            encoded_email = quote_plus(info['email'])
-            await asyncio.sleep(2)
-            ui.navigate.to(f'/verify-account?code=ass&email={encoded_email}&intent=account_create')
+            ui.notify('Account created! Check your email...', position='top-right', close_button=True, type='positive')
 
     async def forgot_pw():
         async def try_forgot_pw():
