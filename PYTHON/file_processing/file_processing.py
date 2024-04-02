@@ -20,7 +20,7 @@ install() # Install traceback
 maindirectory = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 
 # Function to take in a text file and spit out notes created using ai model
-def createTopicList(fullText, model_category, model_name, api_key, chunk_size=3000, variance=100):
+def createTopicList(fullText: str, model_category: str, model_name: str, api_key:str, chunk_size=3000, variance=100):
     """
     Function to take in a string of text and spit out notes created using ai model
 
@@ -69,7 +69,7 @@ def createTopicList(fullText, model_category, model_name, api_key, chunk_size=30
             if compl:
                 result.append(compl)
             else:
-                print("No match found 1st")
+                print("[ERROR] No results returned from the ai model")
                 print(compl)
 
             current_chunk = sentence  # Start a new chunk with the current sentence
@@ -85,7 +85,7 @@ def createTopicList(fullText, model_category, model_name, api_key, chunk_size=30
         if compl:
             result.append(compl)
         else:
-            print("No match found 2nd")
+            print("[ERROR] No results returned from the ai model for the last chunk")
             print(compl)
 
 
