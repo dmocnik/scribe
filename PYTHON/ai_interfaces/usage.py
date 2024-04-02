@@ -29,6 +29,9 @@ ai_inference_obj.add_chat(prompt="Please remember that your name is PAUL.", resp
 # response_text = ai_inference_obj.generate_text("Please flip the meaning of this text: I need to shower tonight before I eat some cheese.")
 response_text = ai_inference_obj.generate_text("What is your name?")
 
+# Ask a question, but mess with all the parameters
+response_text = ai_inference_obj.generate_text("Please write a short story about a man named PAUL.", max_chars=500, stop_char="BRUH", temperature=0.5)
+
 # Ask a question about an image (prints within object)
 # response_text = ai_inference_obj.ask_image("Why is this funny?", "PYTHON/ai_interfaces/example.png")
 

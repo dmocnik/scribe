@@ -13,6 +13,13 @@ try:
     from rich import print as rich_print # Pretty print
     from rich.traceback import install # Pretty traceback
     install() # Install traceback
+    # Load imports for gpt usage
+    import openai
+    import requests
+    # Load imports for gemini usage
+    import pathlib
+    import textwrap
+    import google.generativeai as genai
 except ImportError as e:
     print("[INFO] You are missing one or more libraries. Please use PIP to install any missing ones.")
     print("Try running `python3 -m pip install -r ../../requirements.txt` OR `pip install -r ../../requirements.txt`.")
@@ -31,19 +38,12 @@ class ai_inference:
         self.model_category = model_category
         # "Switch" based on model category
         if model_category == "gemini":
-            # Load imports for gemini usage
-            import pathlib
-            import textwrap
-            import google.generativeai as genai
             # API key required
             self.load_api_key(api_key)
             # Create gemini instance
             genai.configure(api_key=self.api_key)
             self.model = genai.GenerativeModel(self.model_name)
         elif model_category == "gpt":
-            # Load imports for gpt usage
-            import openai
-            import requests
             # API key required
             self.load_api_key(api_key)
             # Create OpenAI instance
@@ -69,7 +69,7 @@ class ai_inference:
                 print(f"[ERROR] Failed to get API key from environment vars. Output: {str(e)}")
                 return False
     
-    def add_chat(self, prompt, response="", init_system_message=""):
+    def add_chat(self, prompt, response="", init_system_message="", temperature=1.0):
         # Add system message to model
         if self.model_category == "gemini":
             # If user includes response here, gemini cannot use that and we should warn
@@ -80,7 +80,7 @@ class ai_inference:
             # If chat session not initialized, create it
             if not hasattr(self, 'chat_session'):
                 self.chat_session = self.model.start_chat()
-            response = self.chat_session.send_message(prompt)
+            response = self.chat_session.send_message(prompt, generation_config=genai.types.GenerationConfig(temperature=temperature))
             print(f"[AI] Adding response '{response.text}'")
             return True
         elif self.model_category == "gpt":
@@ -104,7 +104,7 @@ class ai_inference:
             print(f"[ERROR] Unknown model {self.model_category} or {self.model_name}")
             return False
 
-    def generate_text(self, prompt, max_chars=0, stop_char=None):
+    def generate_text(self, prompt, max_chars=0, stop_char=None, temperature=1.0):
         print(f"[AI] Asking model to generate text based on prompt '{prompt}'")
         # Generate text based on model
         if self.model_category == "gemini":
@@ -114,7 +114,7 @@ class ai_inference:
                 print("[AI] Starting new chat session as one does not exist")
                 self.chat_session = self.model.start_chat()
             # Generate text
-            response_obj = self.chat_session.send_message(prompt)
+            response_obj = self.chat_session.send_message(prompt, generation_config=genai.types.GenerationConfig(temperature=temperature))
             response = response_obj.text # Get text in response
         elif self.model_category == "gpt":
             # Check if chat session exists
@@ -128,7 +128,8 @@ class ai_inference:
             # Generate text
             response_obj = self.model.chat.completions.create(
                 model=self.model_name,
-                messages=self.chat_session
+                messages=self.chat_session,
+                temperature=temperature
             )
             response = response_obj.choices[0].message.content
             # Add response to chat session
@@ -150,7 +151,7 @@ class ai_inference:
         # Return response
         return response
 
-    def ask_image(self, prompt, image_path, max_chars=0, stop_char=None):
+    def ask_image(self, prompt, image_path, max_chars=0, stop_char=None, temperature=1.0):
         # Check if image path exists
         if not os.path.exists(os.path.join(image_path)):
             print(f"[ERROR] Image path {image_path} does not exist")
@@ -165,7 +166,7 @@ class ai_inference:
             # Retrieve image
             input_image = PIL.Image.open(os.path.join(image_path))
             # Generate text with image
-            response_obj = self.model.generate_content([prompt, input_image])
+            response_obj = self.model.generate_content([prompt, input_image], generation_config=genai.types.GenerationConfig(temperature=temperature))
             response_obj.resolve() # Wait for response
             response = response_obj.text # Get text in response
         elif self.model_category == "gpt":
@@ -175,7 +176,8 @@ class ai_inference:
             response_obj = self.model.chat.completions.create(
                 model="gpt-4-vision-preview",
                 messages=[{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{input_image}",},},],}],
-                max_tokens=300
+                max_tokens=300,
+                temperature=temperature
             )
             response = response_obj.choices[0].message.content
         else:
