@@ -1,5 +1,5 @@
 from nicegui import ui, app
-import requests, re, asyncio
+import re, asyncio, httpx
 from urllib.parse import quote_plus
 from fastapi.responses import RedirectResponse
 
@@ -7,7 +7,6 @@ from config import DevelopmentConfig as config
 
 #TODO 
 # Add validation for sign in inputs (so they cant send empty requests)
-# handle the requests in an async way - httpx
 # fix the validtion of the sign up inputs
 
 API_URL = config.API_URL
@@ -16,13 +15,13 @@ ACCOUNT_CREATE_URL = f'{API_URL}/account/create'
 PW_RESET_REQUEST_URL = f'{API_URL}/password/reset/request'
 
 async def content():
-    def try_login():
+    async def try_login():
             sign_in_btn.props('loading')
             username = username_input.value
             password = password_input.value
 
             # response object, pass login url, post body, and cookies from app storage
-            res = requests.post(LOGIN_URL, 
+            res = await httpx.post(LOGIN_URL, 
                                 json={"email": username, "password": password}, 
                                 headers={"Cookie": f"{app.storage.user.get('cookie')}"})
 
@@ -55,7 +54,7 @@ async def content():
                     'name': name_input.value if name_input.value else None
                 }
                 sign_in_btn.props('loading')
-                res = requests.post(ACCOUNT_CREATE_URL, json=user)
+                res = await httpx.post(ACCOUNT_CREATE_URL, json=user)
                 if res.status_code == 200:
                     sign_up_dialog.submit(user)
                 elif res.status_code == 409:
@@ -116,7 +115,7 @@ async def content():
         async def try_forgot_pw():
             if email_input.validate() == True:
                 send_email_btn.props('loading')
-                res = requests.post(PW_RESET_REQUEST_URL,
+                res = await httpx.post(PW_RESET_REQUEST_URL,
                                     json={"email": email_input.value},
                                     headers={"Cookie": f"{app.storage.user.get('cookie')}"})
                 if res.status_code == 200:

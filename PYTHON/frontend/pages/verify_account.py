@@ -1,5 +1,5 @@
 from nicegui import ui, app
-import requests, asyncio, re
+import asyncio, re, httpx
 from config import DevelopmentConfig as config
 
 API_URL = config.API_URL
@@ -25,7 +25,7 @@ async def content(email, code, intent):
             ui.spinner(size='lg')
         
         spinner_dialog.open()
-        res = requests.post(ACCOUNT_LOGIN_CODE_URL, json={'email': email, 'code': code}) # Do we need to pass the cookie here?
+        res = await httpx.post(ACCOUNT_LOGIN_CODE_URL, json={'email': email, 'code': code}) # Do we need to pass the cookie here?
         valid_code = None
         if res.status_code == 200:
             cookie = res.headers['Set-Cookie'].split(';')[0]
@@ -46,7 +46,7 @@ async def content(email, code, intent):
                     await asyncio.sleep(3)
                     ui.navigate.to('/login')
             elif intent == 'account_create':
-                res = requests.post(ACCOUNT_ACTIVATE_URL, json={'email': email, 'code': code}, headers={'Cookie': f"{app.storage.user.get('cookie')}"})
+                res = await httpx.post(ACCOUNT_ACTIVATE_URL, json={'email': email, 'code': code}, headers={'Cookie': f"{app.storage.user.get('cookie')}"})
                 if res.status_code == 200:
                     app.storage.user.update({'authenticated': True})
                     app.storage.user['notifications'] = 'account_create_success'
@@ -58,7 +58,7 @@ async def content(email, code, intent):
     
     async def try_pw_change():
         change_pw_btn.props('loading')
-        res = requests.post(PW_RESET_URL, json={'new_password': password_input.value}, headers={'Cookie': f"{app.storage.user.get('cookie')}"})
+        res = await httpx.post(PW_RESET_URL, json={'new_password': password_input.value}, headers={'Cookie': f"{app.storage.user.get('cookie')}"})
         if res.status_code == 200:
             pw_dialog.submit(True)
         else:
