@@ -1,11 +1,7 @@
 from nicegui import ui, app, events
+from common import logout
 
 editing = False
-
-async def logout():
-    app.storage.user.update({'authenticated': False})
-    app.storage.user.update({'notifications': 'logout'})
-    ui.open('/login')
 
 # For now new and name are stored in URL, later they will be stored in the NiceGUI storage
 async def content(client, id, new, name):

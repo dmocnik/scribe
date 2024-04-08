@@ -2,6 +2,7 @@ from nicegui import ui, app
 from nicegui.events import TableSelectionEventArguments
 from config import DevelopmentConfig as config
 from datetime import datetime
+from common import logout
 
 #TODO
 # Integrate with the backend
@@ -31,11 +32,6 @@ fake_trashed_projects = [
 ] """
 fake_projects = []
 fake_trashed_projects = []
-
-async def logout():
-    app.storage.user.update({'authenticated': False})
-    app.storage.user.update({'notifications': 'logout'})
-    ui.open('/login')
 
 async def content(): 
     async def handle_projects_selection(event: TableSelectionEventArguments): # Update the rename and delete buttons when the selection changes
