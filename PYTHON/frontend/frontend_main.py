@@ -7,10 +7,10 @@ from common import check_notifications
 app.add_middleware(ScribeAuthMiddleware)
 
 @ui.page('/')
-async def _index():
+async def _index(client: Client):
     await style()
     await check_notifications()
-    await index.content()
+    await index.content(client)
     
 @ui.page('/bruh')
 async def _bruh():

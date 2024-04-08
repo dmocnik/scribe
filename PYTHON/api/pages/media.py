@@ -15,7 +15,7 @@ media = APIRouter()
 
 # create project (given user id (session) and project name)
 @media.post('/project/create', dependencies=[Depends(cookie)])
-def create_project(project_name: str = Body(), session_data: SessionData = Depends(verifier)):
+def create_project(project_name: str = Body(embed=True), session_data: SessionData = Depends(verifier)):
 
     # connect to db
     engine = create_engine(settings.DATABASE_URI)
@@ -60,7 +60,7 @@ def get_project(response: Response, project_id: str = Body(), session_data: Sess
 
 # update project (can only really update name)
 @media.post('/project/{project_id}/edit', dependencies=[Depends(cookie)])
-def update_project(project_id: str, response: Response, project_name: str = Body(), session_data: SessionData = Depends(verifier)):
+def update_project(project_id: str, response: Response, project_name: str = Body(embed=True), session_data: SessionData = Depends(verifier)):
 
     # connect to db
     engine = create_engine(settings.DATABASE_URI)
