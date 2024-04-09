@@ -11,6 +11,10 @@ google-generativeai
 pillow
 openai
 httpx
+strip_markdown
+elevenlabs
+pydub
+ffmpeg
 moviepy
 Flask
 waitress
