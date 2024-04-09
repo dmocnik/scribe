@@ -1,43 +1,32 @@
-from nicegui import ui, app
+from nicegui import ui, app, Client
 from nicegui.events import TableSelectionEventArguments
 from config import DevelopmentConfig as config
 from datetime import datetime
+from common import logout
+import httpx
 
 #TODO
-# Integrate with the backend
 # Make resizing the window not funky
 # Potentially switch to single-column format with tabs on top instead of to side
 # Parse the date
+# Handle the table better when there are a lot of projects
 
 API_URL = config.API_URL
-PW_UPDATE_URL = f'{API_URL}/password/update'
+PROJECT_CREATE_URL = f'{API_URL}/project/create'
+PROJECT_READ_URL = f'{API_URL}/project/read'
+PROJECT_LIST_URL = f'{API_URL}/project/list'
 
-project_columns = [ # For now we have name, status, and last modified
+#PROJECT_EDIT_URL = f'{API_URL}/project'
+#PROJECT_DELETE_URL = f'{API_URL}'
+
+project_columns = [ # For now we have id, name, status, and last modified
+    {'name': 'id', 'label': 'ID', 'field': 'id', 'sortable': False}, # Hidden
     {'name': 'name', 'label': 'Name', 'field': 'name', 'sortable': True},
     {'name': 'status', 'label': 'Status', 'field': 'status', 'sortable': True},
     {'name': 'last_modified', 'label': 'Last Modified', 'field': 'last_modified', 'sortable': True},
 ]
 
-# Some sample data
-""" fake_projects = [  
-    {'name': 'Project 1', 'status': 'Processing', 'last_modified': '2022-01-01'},
-    {'name': 'Project 2', 'status': 'Ready', 'last_modified': '2022-01-02'},
-    {'name': 'Project 3', 'status': 'Processing', 'last_modified': '2022-01-03'},
-]
-
-fake_trashed_projects = [
-    {'name': 'Project 5', 'status': 'Trashed', 'last_modified': '2022-01-05'},
-    {'name': 'Project 4', 'status': 'Trashed', 'last_modified': '2022-01-04'},
-] """
-fake_projects = []
-fake_trashed_projects = []
-
-async def logout():
-    app.storage.user.update({'authenticated': False})
-    app.storage.user.update({'notifications': 'logout'})
-    ui.open('/login')
-
-async def content(): 
+async def content(client: Client): 
     async def handle_projects_selection(event: TableSelectionEventArguments): # Update the rename and delete buttons when the selection changes
         if len(projects_table.selected) == 0: # Disable the buttons if no projects are selected
             del_btn.props('disable')
@@ -65,10 +54,10 @@ async def content():
                 ui.button(icon='close', on_click=lambda: new_project_dialog.close()).props('flat round text-color="white"')
             
             name_input = ui.input('Project Name', 
-                                  validation={'Cannot be empty': lambda value: len(value) > 0},
-                                  on_change=lambda value: create_btn.props('disable') if len(value.value) == 0 else create_btn.props(remove='disable')) \
-                                    .classes('w-full') \
-                                    .on('keydown.enter', lambda: new_project_dialog.submit(name_input.value) if name_input.validate() else None)
+                validation={'Cannot be empty': lambda e: len(e) > 0},
+                on_change=lambda e: create_btn.props('disable') if len(e.value) == 0 else create_btn.props(remove='disable')) \
+                    .classes('w-full') \
+                    .on('keydown.enter', lambda: new_project_dialog.submit(name_input.value) if name_input.validate() else None)
 
             with ui.row().classes('w-full'):
                 ui.space()
@@ -76,9 +65,18 @@ async def content():
 
         name = await new_project_dialog # Wait for the dialog to close and get the name
         if name: # If user gave a name, create the project
-            date_str = datetime.now().strftime('%B %e, %Y')
-            projects_table.add_rows({'name': name, 'status': 'Waiting for Upload', 'last_modified': date_str})
-            ui.notify(f'Project "{name}" created!', position='top-right', close_button=True, type='positive')
+            working = ui.notification('Working...', spinner=True, timeout=0)
+            async with httpx.AsyncClient() as c:
+                res = await c.post(PROJECT_CREATE_URL, headers={'Cookie': app.storage.user['cookie']}, json={'project_name': name})
+                id = res.json()
+            if res.status_code == 200:
+                working.dismiss()
+                date_str = datetime.now().strftime('%B %e, %Y')
+                projects_table.add_rows({'id': id, 'name': name, 'status': 'Waiting for Upload', 'last_modified': date_str})
+                ui.notify(f'Project "{name}" created!', position='top-right', close_button=True, type='positive')
+            else:
+                working.dismiss()
+                ui.notify('An error occurred. Please try again.', position='top-right', close_button=True, type='negative')
 
     async def rename_project():
         old_name = projects_table.selected[0]['name'] # Get the old name
@@ -88,53 +86,72 @@ async def content():
                 ui.space()
                 ui.button(icon='close', on_click=lambda: rename_project_dialog.close()).props('flat round text-color="white"')
 
-            # TODO Fix this mess
-            global confirm_rename_btn
-            confirm_rename_btn = None
-
             new_name_input = ui.input('Project Name', 
                 validation={'Cannot be empty': lambda e: len(e) > 0},
                 on_change=lambda e: confirm_rename_btn.props('disable') if len(e.value) == 0 else confirm_rename_btn.props(remove='disable')) \
                     .classes('w-full') \
                     .on('keydown.enter', lambda: rename_project_dialog.submit(new_name_input.value) if new_name_input.validate() else None)
-            new_name_input.set_value(old_name) # Pre-fill the input with the old name
             
             with ui.row().classes('w-full'):
                 ui.space()
                 confirm_rename_btn = ui.button('Rename', on_click=lambda: rename_project_dialog.submit(new_name_input.value)).props('disable')
                 cancel_btn = ui.button('Cancel', on_click=lambda: rename_project_dialog.close())
+            new_name_input.set_value(old_name) # Pre-fill the input with the old name
 
         new_name = await rename_project_dialog # Wait for the dialog to close and get the new name
         if new_name: # If the user gave a new name, rename the project
-            if new_name == old_name: # If the name is the same, don't do anything
-                ui.notify('bruh')
-            else: # Otherwise, update the name and notify the user
+            if not (new_name == old_name): # If the new name is the not the same, update the name and notify the user
                 idx = projects_table.rows.index(projects_table.selected[0])
-                projects_table.rows[idx]['name'] = new_name
-                await deselect_all()
-                projects_table.update()
-                ui.notify(f'"{old_name}" renamed to "{new_name}"', position='top-right', type='positive')
+                id = projects_table.rows[idx]['id']
+                working = ui.notification('Working...', spinner=True, timeout=0)
+                async with httpx.AsyncClient() as c:
+                    res = await c.post(f'{API_URL}/project/{id}/edit', headers={'Cookie': app.storage.user['cookie']}, json={'project_name': new_name})
+                if res.status_code == 200:
+                    working.dismiss()
+                    projects_table.rows[idx]['name'] = new_name
+                    await deselect_all()
+                    projects_table.update()
+                    ui.notify(f'"{old_name}" renamed to "{new_name}"', position='top-right', type='positive')
+                else:
+                    working.dismiss()
+                    ui.notify('An error occurred. Please try again.', position='top-right', close_button=True, type='negative')
+            else: # Otherwise, don't do anything
+                ui.notify('bruh')
 
     async def deselect_all(): # Deselect all rows in both tables.  This function is called to ensure the tables are updated rows are modified
-        projects_table.selected = []
-        trashed_table.selected = []
-        projects_table.update()
-        trashed_table.update()
+        try:
+            projects_table.selected = []
+            trashed_table.selected = []
+            projects_table.update()
+            trashed_table.update()
+        except NameError:
+            pass
 
     async def trash_projects():
         rows_to_delete = projects_table.selected # Get the selected rows
         num_deleted = len(rows_to_delete) # Get the number of selected rows
         if num_deleted == 1: # If only one row is selected, get the name
             deleted_project_name = rows_to_delete[0]['name']
+        working = ui.notification('Working...', spinner=True, timeout=0)
+        results = []
         for row in rows_to_delete: # Move the selected rows to the trashed table, and update their status
+            id = row['id']
             projects_table.rows.remove(row)
             row['status'] = 'Trashed'
             trashed_table.add_rows(row)
-        await deselect_all() # Deselect all rows & update the tables
-        if num_deleted == 1: # Notify the user of the action
-            ui.notify(f'Trashed "{deleted_project_name}"', position='top-right', type='positive')
-        else:
-            ui.notify(f'Trashed {num_deleted} projects', position='top-right', type='positive')
+            async with httpx.AsyncClient() as c:
+                res = await c.post(f'{API_URL}/project/{id}/delete', headers={'Cookie': app.storage.user['cookie']})
+            results.append(res.status_code)
+        if all([res == 200 for res in results]): # If all the requests were successful, dismiss the notification
+            working.dismiss()
+            await deselect_all() # Deselect all rows & update the tables
+            if num_deleted == 1: # Notify the user of the action
+                ui.notify(f'Trashed "{deleted_project_name}"', position='top-right', type='positive')
+            else:
+                ui.notify(f'Trashed {num_deleted} projects', position='top-right', type='positive')
+        else: # Otherwise, display an error message
+            working.dismiss()
+            ui.notify('An error occurred. Please try again.', position='top-right', close_button=True, type='negative')
 
     async def restore_projects():
         rows_to_restore = trashed_table.selected # Get the selected rows
@@ -181,7 +198,7 @@ async def content():
             if num_deleted == 1:
                 ui.notify(f'Permanently deleted "{deleted_project_name}"', position='top-right', type='positive')
             else:
-                ui.notify(f'Restored {num_deleted} projects', position='top-right', type='positive')
+                ui.notify(f'Permanently deleted {num_deleted} projects', position='top-right', type='positive')
 
     async def open_project(name):
         ui.navigate.to(f'/project?id=testing&new=True&name={name}', new_tab=True)
@@ -190,10 +207,20 @@ async def content():
     # Main UI
     ui.query('.nicegui-content').classes('h-[calc(100vh-74px)]') # yuck https://github.com/zauberzeug/nicegui/discussions/2703#discussioncomment-8820280
 
+    help_dialog = ui.dialog().props('full-width')
+    with help_dialog, ui.card().style(replace='').classes('w-3/4'):
+        with ui.row().classes('w-full items-center'):
+            ui.label('Help').classes('text-h5')
+            ui.space()
+            ui.button(icon='close', on_click=help_dialog.close).props('flat round text-color="white"')
+        with open('PYTHON/frontend/assets/help_index.md', 'r', encoding='utf-8') as f:
+            ui.markdown(f.read())
+    
     with ui.header(elevated=True).classes('items-center justify-between'): # Create the header
         ui.label('📝').style('font-size: 1.5rem;')
         ui.label('My Projects').style('font-size: 1.5rem; font-weight: 500;')
         ui.space()
+        ui.button(on_click=help_dialog.open, icon='help').props('flat round text-color="white"').tooltip('Help')
         ui.button(on_click=logout, icon='logout').props('flat round text-color="white"').tooltip('Sign Out')
 
     main_div = ui.row().classes('w-full gap-3 h-screen flex-nowrap') # Create the main div to contain the sidebar and the picker
@@ -201,42 +228,67 @@ async def content():
         sidebar = ui.card().classes('w-[250px] h-full backdrop-blur-lg')
         with sidebar:
             with ui.tabs(on_change=deselect_all).props('vertical inline-label').classes('w-full') as tabs: #Create the tabs for the sidebar
-                projects = ui.tab('Projects', icon='folder')
-                trashed = ui.tab('Trashed', icon='delete')
+                projects_tab = ui.tab('Projects', icon='folder')
+                trashed_tab = ui.tab('Trashed', icon='delete')
+                projects_tab.disable()
+                trashed_tab.disable()
 
-        picker = ui.card().classes('w-full h-full backdrop-blur-lg') # Create a card to contain the tab panels
-        with picker:
-            with ui.tab_panels(tabs, value=projects) \
+        browser = ui.card().classes('w-full h-full backdrop-blur-lg') # Create a card to contain the tab panels
+        with browser:
+            with ui.column().classes('w-full items-center justify-center h-full'):
+                spinner = ui.spinner(size='100px')
+
+        await client.connected()
+        async with httpx.AsyncClient() as c:
+            res = await c.get(PROJECT_LIST_URL, headers={'Cookie': app.storage.user['cookie']}) #Get the projects
+            if res.status_code == 200: # If the request was successful, clear the spinner and set the projects
+                projects = res.json()
+                for project in projects:
+                    print(project['name'], project['id'], project['media'])
+                projects_tab.enable()
+                trashed_tab.enable()
+                browser.clear()
+            else: # otherwise, display an error message
+                browser.clear() 
+                with browser:
+                    with ui.column().classes('w-full items-center justify-center h-full'):
+                        ui.icon('error_outline', size='100px')
+                        ui.label('There was an issue loading your projects.').classes('text-h5')
+                        ui.label('Try reloading the page.')
+                        return
+        
+        with browser:
+            with ui.tab_panels(tabs, value=projects_tab) \
                 .props('vertical') \
-                .classes('w-full backdrop-blur-lg'): #Create the tab panel areas
+                .classes('w-full'): #Create the tab panel areas
             
-                with ui.tab_panel(projects).classes('backdrop-blur-lg p-0'):
+                with ui.tab_panel(projects_tab).classes('p-0'):
                     #Create the projects table
-                    projects_table = ui.table(columns=project_columns, rows=fake_projects, row_key='name', selection='multiple', on_select=handle_projects_selection) \
-                        .classes('w-full backdrop-blur-lg') \
+                    projects_table = ui.table(columns=project_columns, rows=projects, row_key='id', selection='multiple', on_select=handle_projects_selection) \
+                        .classes('w-full') \
                         .on('row-dblclick', lambda e: open_project(e.args[1]['name']))
                     
-                    projects_table.add_slot('no-data', '''
-                                            <div class="full-width column flex-center q-pa-md">
-                                                <q-icon size="xl" name="warning" />
-                                                <p>No projects found. Click "New Project" to create one.</p>
-                                            </div>''') # Convert this to the NiceGUI function later
+                    projects_table.columns[0]['classes'] = 'hidden' # Hide the ID column
+                    projects_table.columns[0]['headerClasses'] = 'hidden'
+
+                    with projects_table.add_slot('no-data'): # Add the message that shows if there are no projects
+                        with ui.column().classes('full-width flex-center q-pa-md'):
+                            ui.icon('warning', size='xl')
+                            ui.label('No projects found. Click "New Project" to create one.')
                     
-                    with projects_table:
-                        with projects_table.add_slot('top-right'): # Add the search bar
-                            with ui.input(placeholder='Search').props('type=search clearable').bind_value(projects_table, 'filter').add_slot('append'):
-                                ui.icon('search')
+                    with projects_table.add_slot('top-right'): # Add the search bar
+                        with ui.input(placeholder='Search').props('type=search clearable').bind_value(projects_table, 'filter').add_slot('append'):
+                            ui.icon('search')
 
-                        with projects_table.add_slot('top-left'): # Add the buttons
-                            with ui.row().classes('gap-2'):
-                                new_btn = ui.button('New Project', on_click=new_project, icon='add')
-                                del_btn = ui.button('Delete', on_click=trash_projects, icon='delete').props('disable')
-                                ren_btn = ui.button('Rename', on_click=rename_project, icon='edit').props('disable')
+                    with projects_table.add_slot('top-left'): # Add the buttons
+                        with ui.row().classes('gap-2'):
+                            new_btn = ui.button('New Project', on_click=new_project, icon='add')
+                            del_btn = ui.button('Delete', on_click=trash_projects, icon='delete').props('disable')
+                            ren_btn = ui.button('Rename', on_click=rename_project, icon='edit').props('disable')
 
-
-                with ui.tab_panel(trashed).classes('p-0'):
-                    trashed_table = ui.table(columns=project_columns, rows=fake_trashed_projects, row_key='name', selection='multiple', on_select=handle_trashed_selection) \
-                        .classes('w-full backdrop-blur-lg') # Create the table for the trashed projects
+                with ui.tab_panel(trashed_tab).classes('p-0'): #TODO do something with the trashed projects
+                    trashed_table = ui.table(columns=project_columns, rows=[], row_key='name', selection='multiple', on_select=handle_trashed_selection) \
+                        .classes('w-full') # Create the table for the trashed projects
                     
                     trashed_table.add_slot('no-data', '''
                                             <div class="full-width column flex-center q-pa-md">
@@ -244,10 +296,9 @@ async def content():
                                                 <p>No projects found.</p>
                                             </div>''')
                     
-                    with trashed_table:
-                        with trashed_table.add_slot('top-right'): # Add the search bar
-                            with ui.input(placeholder='Search').props('type=search clearable').bind_value(trashed_table, 'filter').add_slot('append'):
-                                ui.icon('search')
+                    with trashed_table.add_slot('top-right'): # Add the search bar
+                        with ui.input(placeholder='Search').props('type=search clearable').bind_value(trashed_table, 'filter').add_slot('append'):
+                            ui.icon('search')
 
                     with trashed_table.add_slot('top-left'): # Add the buttons
                         with ui.row().classes('gap-2'):
