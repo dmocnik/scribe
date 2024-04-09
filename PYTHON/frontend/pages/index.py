@@ -3,7 +3,7 @@ from nicegui.events import TableSelectionEventArguments
 from config import DevelopmentConfig as config
 from datetime import datetime
 from common import logout
-import httpx, asyncio
+import httpx
 
 #TODO
 # Make resizing the window not funky
@@ -207,11 +207,20 @@ async def content(client: Client):
     # Main UI
     ui.query('.nicegui-content').classes('h-[calc(100vh-74px)]') # yuck https://github.com/zauberzeug/nicegui/discussions/2703#discussioncomment-8820280
 
+    help_dialog = ui.dialog().props('full-width')
+    with help_dialog, ui.card().style(replace='').classes('w-3/4'):
+        with ui.row().classes('w-full items-center'):
+            ui.label('Help').classes('text-h5')
+            ui.space()
+            ui.button(icon='close', on_click=help_dialog.close).props('flat round text-color="white"')
+        with open('PYTHON/frontend/assets/help_index.md', 'r', encoding='utf-8') as f:
+            ui.markdown(f.read())
+    
     with ui.header(elevated=True).classes('items-center justify-between'): # Create the header
         ui.label('📝').style('font-size: 1.5rem;')
         ui.label('My Projects').style('font-size: 1.5rem; font-weight: 500;')
         ui.space()
-        ui.button(on_click=lambda: ui.notify('no u'), icon='help').props('flat round text-color="white"').tooltip('Help') #TODO: Implement help
+        ui.button(on_click=help_dialog.open, icon='help').props('flat round text-color="white"').tooltip('Help')
         ui.button(on_click=logout, icon='logout').props('flat round text-color="white"').tooltip('Sign Out')
 
     main_div = ui.row().classes('w-full gap-3 h-screen flex-nowrap') # Create the main div to contain the sidebar and the picker

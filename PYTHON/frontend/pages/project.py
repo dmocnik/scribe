@@ -73,6 +73,15 @@ async def content(client, id, new, name):
 
     ui.query('.nicegui-content').classes('h-[calc(100vh-74px)]') # yuck https://github.com/zauberzeug/nicegui/discussions/2703#discussioncomment-8820280
 
+    help_dialog = ui.dialog().props('full-width')
+    with help_dialog, ui.card().style(replace='').classes('w-3/4'):
+        with ui.row().classes('w-full items-center'):
+            ui.label('Help').classes('text-h5')
+            ui.space()
+            ui.button(icon='close', on_click=help_dialog.close).props('flat round text-color="white"')
+        with open('PYTHON/frontend/assets/help_project.md', 'r', encoding='utf-8') as f:
+            ui.markdown(f.read())
+
     header = ui.header(elevated=True).classes('items-center justify-between')
     with header: # Create the header
         ui.link('📝', '/').style('font-size: 1.5rem;').tooltip('Home')
@@ -83,6 +92,7 @@ async def content(client, id, new, name):
         proj_name_input.set_visibility(False)
         proj_name_edit_btn = ui.button(on_click=lambda: edit_name(True), icon='edit').props('flat round text-color="white"')
         ui.space()
+        ui.button(on_click=help_dialog.open, icon='help').props('flat round text-color="white"').tooltip('Help')
         ui.button(on_click=logout, icon='logout').props('flat round text-color="white"').tooltip('Sign Out')
 
     with ui.row().classes('w-full flex-nowrap h-full'):
