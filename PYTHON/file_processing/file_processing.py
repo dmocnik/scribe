@@ -1,18 +1,31 @@
 # MIT License
 # Copyright (c) 2024
 
-# TODO: convert to md and save to database, save string to database
+# TODO: 
 
 # Attempt to import all necessary libraries
 import os # General
-import base64 # Base64 encoding
 import re # Regular expressions
 from rich import print as rich_print # Pretty print
 from rich.traceback import install # Pretty traceback
 import sys # System
+import ffmpeg # Audio processing
+import pydub # Audio processing
+from pydub import AudioSegment # Audio segment object
+import strip_markdown # Strip markdown syntax
+from elevenlabs.client import ElevenLabs # Eleven labs client
+from elevenlabs import save as eleven_save # Eleven labs save
+from elevenlabs import VoiceSettings as eleven_voice_settings # Eleven labs voice settings
+from elevenlabs import Voice as eleven_voice # Eleven labs voice
+from elevenlabs import play # Eleven labs play
+import tempfile
+import time # Time, for sleep. delete later was used for testing temp directory
+import json # Json file operations, might not need this for the function itself
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
 from ai_interfaces.ai_inference import ai_inference as ai # AI inference class
+
 install() # Install traceback
 
 
@@ -127,3 +140,164 @@ def generateNotes(fullText: str, model_category: str, model_name: str, api_key:s
         i+=1
     
     return finalNotes
+
+
+
+def textToAudio(notes: str, voice_model: str):
+
+    def ttsAI(text: str, voice_sample: str, file_name: str):
+        # Options
+        API_KEY = "09701d94ca66aa3311a2209c9dfe3fbb"
+        # TARGET_VOICE = "Antoni"
+        TARGET_VOICE = voice_sample
+        # INPUT_TEXT = "meow meow meow. mmmeeeeeooooowwww"
+        INPUT_TEXT = text
+        # AUDIO_FILE = "output.wav"
+        AUDIO_FILE = file_name
+        STABILITY = 0.35
+        SIMILARITY_BOOST = 0.5
+
+        # Init client
+        client = ElevenLabs(api_key=API_KEY)
+
+        # Set key, voices, and params
+        selected_voice_object = None
+        eleven_available_voices = client.voices.get_all()
+        for voice in eleven_available_voices.voices:
+            if voice.name == TARGET_VOICE:
+                selected_voice_object = voice
+                break
+        if selected_voice_object is None:
+            raise ValueError(f"No voice found with name {TARGET_VOICE}")
+
+        # Customize voice
+        selected_voice_object = eleven_voice(
+            voice_id = selected_voice_object.voice_id,
+            settings = eleven_voice_settings(stability=STABILITY, similarity_boost=SIMILARITY_BOOST, style=0.0, use_speaker_boost=True)
+        )
+
+        # Speak the audio using elevenlabs
+        synthesized_audio = client.generate(text=f"{INPUT_TEXT}", voice=selected_voice_object, model="eleven_turbo_v2")
+
+        # Save the audio
+        # eleven_save(audio=synthesized_audio, filename=AUDIO_FILE)
+
+        return synthesized_audio
+
+    # Audiobook variable to store running audiobook clips concatenated
+    audioBook = None
+
+    # List that will store the dictionary of every clips info in
+    clipInfo = []
+
+    # Strip down mark down syntax from the text
+    # cleanedNotes = strip_markdown.strip_markdown(notes)
+
+    # Split text by double new line and put into an array of text chunks
+    #chunks = cleanedNotes.split("\n\n")
+
+    chunks = [strip_markdown.strip_markdown(x) for x in notes.split("\n\n")]
+
+    # Creating a temporary directory to do things in
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        print('created temporary directory', tmpdirname)
+
+        # Json file name for audiobook clip info json file
+        json_file_name = "audioBookInfo.json"
+
+        # path to json file in temp directory
+        json_file_path = os.path.join(tmpdirname, json_file_name)
+
+        # very important counter index
+        i = 1
+
+        # Iterating through every chunk of text
+        for chunk in chunks:
+            
+            # Generate the audio clip
+            audioGenerator = ttsAI(chunk, voice_model, f"{i}")
+
+            # name of the clip in .wav
+            filename = f'Clip_{i}.wav'
+
+            # Path to where the current audio clip .wav file
+            full_path = os.path.join(tmpdirname, filename)
+
+            # Initializing clip information dict
+            currentClipInfo = {}
+
+            # converting the eleven_labs audio generator into a .wav file in temporary directory
+            with open(full_path, 'wb') as file:
+                for audioChunk in audioGenerator:
+                    file.write(audioChunk)
+            
+
+            if i == 1: # if first clip generated
+                
+                # convert .wav clip into audio segment in pydub
+                audioClip = AudioSegment.from_file(full_path)
+
+                # initializing first clips time stamps
+                timeStampBegin = 0
+                timeStampEnd = audioClip.duration_seconds
+
+                # storing info into dictionary about clip
+                currentClipInfo = {
+                    'Clip #': filename,
+                    'Clip Text': chunk,
+                    'Start': timeStampBegin,
+                    'End': timeStampEnd
+                }
+
+                # Appending dict to list
+                clipInfo.append(currentClipInfo)
+
+                # Audio book file set to first audio clip to start
+                audioBook = audioClip
+
+                # increment index
+                i += 1
+            elif i > 1: # Clips after the first one generated
+                # Setting current clip start time stamp to previous audiobook total length
+
+                timeStampBegin = audioBook.duration_seconds
+
+                # convert .wav clip into audio segment in pydub and concatenate it to the end
+                # of the current audiobook file
+                audioBook = audioBook + AudioSegment.from_file(full_path)
+
+                # setting the current clips end time stamp to length of audiobook after concatenation
+                timeStampEnd = audioBook.duration_seconds
+
+                # storing info into dictionary about clip
+                currentClipInfo = {
+                    'Clip #': filename,
+                    'Clip Text': chunk,
+                    'Start': timeStampBegin,
+                    'End': timeStampEnd
+                }
+
+                # appending clip info to list of dict
+                clipInfo.append(currentClipInfo)
+
+                # increment index
+                i += 1
+            else:
+                print("What the flip is going on?!? Wheres my clips!!!!")
+
+        # After iterating through chunks of text
+
+        # Convert list of dictionaries to json file
+        # with open(json_file_path, 'w') as json_file:
+            # json.dump(clipInfo, json_file, indent = 4)
+
+        # creating file path for audiobook in .wav format, in the temp directory
+        # audio_book_path = os.path.join(tmpdirname, "audiobook.wav")
+
+        # Export audiobook file of concatenated clips as .wav with pydub
+        # audioBook.export(audio_book_path, format="wav")
+
+        # Timer to stop for 60 seconds to see what is going on in the temp directory at the end/view files
+        # time.sleep(60)
+    return clipInfo, audioBook
+
