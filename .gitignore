@@ -184,3 +184,5 @@ PYTHON/queue/input/*
 PYTHON/queue/output/*
 PYTHON/queue/temp
 temp
+input
+output

@@ -1,7 +1,7 @@
 # MIT License
 # Copyright (c) 2024
 
-# [ Check out the `usage.py` file for an example, as well as ``../../DOCS/Queue Model.md` for documentation! ]
+# [ Check out the `usage.py` file for an example ]
 
 # Attempt to import all necessary libraries
 try:
@@ -150,7 +150,9 @@ class queue_model:
         # Make transcript
         try:
             with open(audio_path, 'rb') as file:
-                response = requests.post('http://scribe_whisper:9000/asr', data={'output': output, 'task': task, 'language': language, 'word_timestamps': word_timestamps, 'encode': encode, 'audio_file': file})
+                files = {'audio_file': file}
+                data = {'output': output, 'task': task, 'language': language, 'word_timestamps': word_timestamps, 'encode': encode}
+                response = requests.post('http://scribe_whisper:9000/asr', files=files, data=data)
                 with open(transcript_path, 'w') as transcript_file:
                     transcript_file.write(response.text)
         except Exception as e:
