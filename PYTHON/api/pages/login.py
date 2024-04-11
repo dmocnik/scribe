@@ -53,7 +53,7 @@ async def get_email(session_data: SessionData = Depends(verifier)):
 # given email address, send reset password link
 # adds entry to Codes table and send email
 # TODO: check bad email
-@account.post('/password/reset/request', dependencies=[Depends(cookie)])
+@account.post('/password/reset/request')
 def password_request_reset(response: Response, email: str = Body(embed=True)):
     # connect to db
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
