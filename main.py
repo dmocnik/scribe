@@ -47,6 +47,9 @@ BACKEND_LAUNCH = ['uvicorn', f'{BACKEND_PATH}:app', '--reload', '--host', '0.0.0
 FRONTEND_PATH = os.path.join(maindirectory, "PYTHON", "frontend", "frontend_main.py")
 FRONTEND_LAUNCH = ['python3', FRONTEND_PATH]
 
+SYSTEM_QUEUE_PATH = os.path.join(maindirectory, "PYTHON", "queue", "runner.py")
+SYSTEM_QUEUE_LAUNCH = ['python3', SYSTEM_QUEUE_PATH]
+
 # Custom low-level functions
 def print(text="", log_filename="", end="\n", max_file_mb=10):
     global maindirectory
@@ -160,6 +163,8 @@ if __name__ == "__main__":
         backend_process = subprocess.Popen(BACKEND_LAUNCH)
         # Run the frontend by invoking NiceGUI in ./PYTHON/frontend/frontend_main.py using subprocess
         frontend_process = subprocess.Popen(FRONTEND_LAUNCH)
+        # Run the system queue by invoking runner.py in ./PYTHON/queue/runner.py using subprocess
+        system_queue_process = subprocess.Popen(SYSTEM_QUEUE_LAUNCH)
         # Periodically display the output of the subprocesses
         while True:
             try:
@@ -170,6 +175,9 @@ if __name__ == "__main__":
                 if frontend_process.poll() is not None:
                     print("[red][ERROR][/red]: Frontend process has stopped running. Exiting...")
                     quit()
+                if system_queue_process.poll() is not None:
+                    print("[red][ERROR][/red]: System queue process has stopped running. Exiting...")
+                    quit()
                 print(f"[gold1][INFO][/gold1]: Heartbeat check-in. Sleeping for 60 seconds...")
                 time.sleep(60)
             except KeyboardInterrupt:
@@ -179,6 +187,8 @@ if __name__ == "__main__":
                     backend_process.kill()
                 if frontend_process and frontend_process.poll() is None:
                     frontend_process.kill()
+                if system_queue_process and system_queue_process.poll() is None:
+                    system_queue_process.kill()
                 quit()
     else:
         print("[gold1][INFO][/gold1]: webserver disabled, running program in standalone mode for testing...")
