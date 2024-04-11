@@ -12,6 +12,8 @@ pillow
 openai
 httpx
 moviepy
+Flask
+waitress
 strip_markdown
 elevenlabs
 pydub
