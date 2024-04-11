@@ -72,6 +72,7 @@ services:
       - scribe_int_network
   openai-whisper-asr:
     image: onerahmet/openai-whisper-asr-webservice:latest
+    container_name: scribe_whisper
     volumes:
       - whisper_persist:/data/whisper
     ports:

@@ -179,3 +179,8 @@ PRIVATE
 
 PYTHON/speech-to-text_deprecated/input.wav
 PYTHON/speech-to-text_deprecated/LOGS/*
+
+PYTHON/queue/input/*
+PYTHON/queue/output/*
+PYTHON/queue/temp
+temp

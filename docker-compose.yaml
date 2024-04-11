@@ -72,6 +72,7 @@ services:
       - scribe_int_network
   openai-whisper-asr:
     image: onerahmet/openai-whisper-asr-webservice:latest-gpu
+    container_name: scribe_whisper
     deploy:
       resources:
         reservations:
@@ -84,7 +85,7 @@ services:
     ports:
       - "95:9000" # Map port 95 on host to 9000 in container (Whisper web service)
     environment:
-      ASR_MODEL: base
+      ASR_MODEL: small
       ASR_ENGINE: openai_whisper
       ASR_MODEL_PATH: /data/whisper
     restart: unless-stopped
