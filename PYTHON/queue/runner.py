@@ -7,11 +7,16 @@ import time
 import json
 from queue_model import queue_model
 
-# Determine the main project directory, for compatibility (the absolute path to this file)
-maindirectory = os.path.join(os.path.dirname(os.path.abspath(__file__))) 
-
 # Create the queue model (this class shares the same queue for ALL objects!)
 qm = queue_model()
+
+"""
+Example task file:
+{
+    "action": "convert_mp4_wav",
+    "parameters": ["input/sample_video.mp4", "output/audio.wav"]
+}
+"""
 
 # Constantly check for a file containing a task to run
 while True:

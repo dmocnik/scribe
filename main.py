@@ -47,7 +47,7 @@ BACKEND_LAUNCH = ['uvicorn', f'{BACKEND_PATH}:app', '--reload', '--host', '0.0.0
 FRONTEND_PATH = os.path.join(maindirectory, "PYTHON", "frontend", "frontend_main.py")
 FRONTEND_LAUNCH = ['python3', FRONTEND_PATH]
 
-SYSTEM_QUEUE_PATH = os.path.join(maindirectory, "PYTHON", "queue", "runner.py")
+SYSTEM_QUEUE_PATH = os.path.join(maindirectory, "PYTHON", "queue", "runner_flask.py")
 SYSTEM_QUEUE_LAUNCH = ['python3', SYSTEM_QUEUE_PATH]
 
 # Custom low-level functions

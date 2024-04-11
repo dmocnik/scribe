@@ -12,3 +12,5 @@ pillow
 openai
 httpx
 moviepy
+Flask
+waitress
