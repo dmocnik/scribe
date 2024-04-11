@@ -11,6 +11,7 @@ google-generativeai
 pillow
 openai
 httpx
+moviepy
 strip_markdown
 elevenlabs
 pydub
