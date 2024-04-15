@@ -7,8 +7,12 @@ import time
 import json
 from queue_model import queue_model
 
+# Get the system username and password from environment vars
+SYSTEM_USER = os.environ.get('SYSTEM_USER')
+SYSTEM_PASSWORD = os.environ.get('SYSTEM_PASSWORD')
+
 # Create the queue model (this class shares the same queue for ALL objects!)
-qm = queue_model()
+qm = queue_model(system_user=SYSTEM_USER, system_password=SYSTEM_PASSWORD)
 
 """
 Example task file:

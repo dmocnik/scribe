@@ -28,7 +28,6 @@ from ai_interfaces.ai_inference import ai_inference as ai # AI inference class
 
 install() # Install traceback
 
-
 # Determine the main project directory, for compatibility (the absolute path to this file)
 maindirectory = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 
