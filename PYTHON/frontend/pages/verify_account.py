@@ -16,14 +16,8 @@ async def content(client: Client, email: str = None, code: str = None):
         async with httpx.AsyncClient() as c:
             res = await c.post(ACCOUNT_ACTIVATE_URL, json={'email': email, 'code': code})
         if res.status_code == 200:
-            """ cookie = res.headers['Set-Cookie'].split(';')[0]
-            app.storage.user.update({'username': email,
-                                    'authenticated': True,
-                                    'cookie': cookie}) """
-            app.storage.user.update({'username': email,
-                                    'authenticated': True})
             app.storage.user['notifications'] = 'account_create_success'
-            ui.navigate.to('/')
+            ui.navigate.to('/login')
         elif res.status_code == 401:
             ui.notify('Invalid code', position='top-right', close_button=True, type='negative')
         else:
