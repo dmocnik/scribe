@@ -23,6 +23,16 @@ Example task json:
     "action": "convert_mp4_wav",
     "parameters": ["input/sample_video.mp4", "output/audio.wav"]
 }
+
+{
+    "action": "summarize_transcript",
+    "parameters": ["input/sample_transcript.txt", "output/summary.txt"]
+}
+
+{
+    "action": "make_audiobook",
+    "parameters": ["input/sample_summary.txt", "output/audiobook.wav", "Antoni"]
+}
 """
 
 # Define the add_action endpoint

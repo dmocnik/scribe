@@ -65,11 +65,8 @@ class queue_model:
             # Get action
             action = self.q.get()
             print(f"[QUEUE] Executing action {action[0]} with parameters {action[1]}...")
-            # Summarize transcript
-            if action[0] == 'summarize_transcript':
-                self.summarize_transcript(action[1])
             # Convert mp4 to wav
-            elif action[0] == 'convert_mp4_wav':
+            if action[0] == 'convert_mp4_wav':
                 # Create temp folder
                 temp_folder = self.create_temp_folder()
                 # Retrieve file
@@ -103,9 +100,9 @@ class queue_model:
                 # Create temp folder
                 temp_folder = self.create_temp_folder()
                 # Retrieve file
-                self.retrieve_file(action[1], temp_folder)
+                self.retrieve_file(action[1][0], temp_folder)
                 # Summarize transcript
-                self.summarize_transcript(os.path.join(temp_folder, os.path.basename(action[1])))
+                self.summarize_transcript(os.path.join(temp_folder, os.path.basename(action[1][0])), os.path.join(temp_folder, os.path.basename(action[1][1])))
                 # Remove temp folder
                 self.remove_temp_folder(temp_folder)
             # Get audiobook
@@ -226,7 +223,7 @@ class queue_model:
         except Exception as e:
             print(f"[ERROR] Failed to make transcript from {audio_path} to {transcript_path}. Error: {e}")
 
-    def summarize_transcript(self, file_path):
+    def summarize_transcript(self, file_path, output_path):
         # Call the generateNotes function from the file_processing module to summarize a transcript
         print(f"[QUEUE] Summarizing transcript {file_path}...")
         # Retrieve API key from environment variable
@@ -238,7 +235,7 @@ class queue_model:
         try:
             notes = file_processing.generateNotes(fullText, 'gpt', 'gpt-3.5-turbo', AI_API_KEY)
             # Write the notes to a file
-            with open(file_path.replace('.txt', '-notes.txt'), 'w') as file:
+            with open(output_path, 'w') as output_file:
                 file.write(notes)
         except Exception as e:
             print(f"[ERROR] Failed to summarize transcript {file_path}. Error: {e}")
