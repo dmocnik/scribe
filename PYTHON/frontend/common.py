@@ -12,7 +12,7 @@ async def check_notifications(): # TODO make this be able to handle multiple not
     if notifications == 'logout':
         ui.notify('Successfully logged out!', position='top-right', close_button=True, type='positive')
     if notifications == 'account_create_success':
-        ui.notify('Account verified successfully! You are now logged in.', position='top-right', close_button=True, type='positive')
+        ui.notify('Account verified successfully! Please login again.', position='top-right', close_button=True, type='positive')
     if notifications == 'pw_change_success':
         ui.notify('Password changed successfully! Please login again.', position='top-right', close_button=True, type='positive')
     pass
