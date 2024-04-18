@@ -5,8 +5,6 @@ from config import DevelopmentConfig as config
 API_URL = config.API_URL
 ACCOUNT_ACTIVATE_URL = f'{API_URL}/account/activate'
 
-#TODO Store the URL parametrs in the app storage so they can't be tampered with
-
 async def content(client: Client, email: str = None, code: str = None):
     async def verify_code():
         with ui.dialog().props('persistent') as spinner_dialog, ui.card().style(replace=''):

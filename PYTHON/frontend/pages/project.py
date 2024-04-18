@@ -3,8 +3,7 @@ from common import logout
 
 editing = False
 
-# For now new and name are stored in URL, later they will be stored in the NiceGUI storage
-async def content(client, id, new, name):
+async def content(client, id, new):
     async def upload_file():
         async def handle_upload(e: events.UploadEventArguments):
             filename = e.name
