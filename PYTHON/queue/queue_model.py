@@ -103,6 +103,8 @@ class queue_model:
                 self.retrieve_file(action[1][0], temp_folder)
                 # Summarize transcript
                 self.summarize_transcript(os.path.join(temp_folder, os.path.basename(action[1][0])), os.path.join(temp_folder, os.path.basename(action[1][1])))
+                # Put new file in the output folder, which is listed in the second parameter
+                self.put_file(action[1][1], temp_folder, os.path.dirname(action[1][1]))
                 # Remove temp folder
                 self.remove_temp_folder(temp_folder)
             # Get audiobook
@@ -233,10 +235,10 @@ class queue_model:
             fullText = file.read()
         # Call the function
         try:
-            notes = file_processing.generateNotes(fullText, 'gpt', 'gpt-3.5-turbo', AI_API_KEY)
+            notes = file_processing.generateNotes(fullText, 'gpt', 'gpt-3.5-turbo')
             # Write the notes to a file
             with open(output_path, 'w') as output_file:
-                file.write(notes)
+                output_file.write(notes)
         except Exception as e:
             print(f"[ERROR] Failed to summarize transcript {file_path}. Error: {e}")
     

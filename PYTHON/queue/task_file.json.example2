@@ -1,4 +1,0 @@
-{
-    "action": "make_transcript",
-    "parameters": ["output/audio.wav", "output/transcript.txt", "text", "transcribe", "en", false, true]
-}

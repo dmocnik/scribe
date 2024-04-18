@@ -1,4 +1,0 @@
-{
-    "action": "convert_mp4_wav",
-    "parameters": ["input/sample_video.mp4", "output/audio.wav"]
-}

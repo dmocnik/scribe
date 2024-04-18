@@ -24,6 +24,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: scribe_app
+    depends_on:
+      - scribe_db
     environment:
       - BRUH=${BRUH} # Don't question it
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}

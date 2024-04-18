@@ -25,13 +25,18 @@ Example task json:
 }
 
 {
-    "action": "summarize_transcript",
-    "parameters": ["input/sample_transcript.txt", "output/summary.txt"]
+    "action": "make_transcript",
+    "parameters": ["input/sample_video.mp4", "output/transcript.txt", "text", "transcribe", "en", false, true]
 }
 
 {
-    "action": "make_audiobook",
-    "parameters": ["input/sample_summary.txt", "output/audiobook.wav", "Antoni"]
+    "action": "summarize_transcript",
+    "parameters": ["output/transcript.txt", "output/summary.txt"]
+}
+
+{
+    "action": "get_audiobook",
+    "parameters": ["output/summary.txt", "output/audiobook.wav", "Antoni"]
 }
 """
 

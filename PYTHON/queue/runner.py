@@ -14,14 +14,6 @@ SYSTEM_PASSWORD = os.environ.get('SYSTEM_PASSWORD')
 # Create the queue model (this class shares the same queue for ALL objects!)
 qm = queue_model(system_user=SYSTEM_USER, system_password=SYSTEM_PASSWORD)
 
-"""
-Example task file:
-{
-    "action": "convert_mp4_wav",
-    "parameters": ["input/sample_video.mp4", "output/audio.wav"]
-}
-"""
-
 # Constantly check for a file containing a task to run
 while True:
     if os.path.exists('task_file.json'):  # Check if the file exists
