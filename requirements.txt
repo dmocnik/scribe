@@ -15,3 +15,6 @@ strip_markdown
 elevenlabs
 pydub
 ffmpeg
+moviepy
+Flask
+waitress
