@@ -28,12 +28,11 @@ from ai_interfaces.ai_inference import ai_inference as ai # AI inference class
 
 install() # Install traceback
 
-
 # Determine the main project directory, for compatibility (the absolute path to this file)
 maindirectory = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 
 # Function to take in a text file and spit out notes created using ai model
-def generateNotes(fullText: str, model_category: str, model_name: str, api_key:str, chunk_size=3000, variance=100):
+def generateNotes(fullText: str, model_category: str, model_name: str, chunk_size=3000, variance=100):
     """
     Function to take in a string of text and spit out notes created using ai model
 
@@ -48,8 +47,8 @@ def generateNotes(fullText: str, model_category: str, model_name: str, api_key:s
     """
 
     # Create instances of the ai model for summarizing and cleaning the notes
-    ai_completion = ai(model_category, model_name, api_key)
-    ai_completion2 = ai(model_category, model_name, api_key)
+    ai_completion = ai(model_category, model_name)
+    ai_completion2 = ai(model_category, model_name)
     # ai_completion3 = ai(model_category, model_name, api_key)
 
     # System prompts for the ai models
@@ -61,7 +60,6 @@ def generateNotes(fullText: str, model_category: str, model_name: str, api_key:s
     
     # Variables for the chunking of the text and some parameters for the ai model
     temp = 0.5
-    p = 0.95
     result = []
     current_chunk = ""
 
@@ -131,11 +129,11 @@ def generateNotes(fullText: str, model_category: str, model_name: str, api_key:s
 
         # Modulo condition to check if the index is divisible by 10 to call the ai model object creation again
         if (i % 10 == 0):
-            ai_completion3 = ai(model_category, model_name, api_key)
+            ai_completion3 = ai(model_category, model_name)
             ai_completion3.add_chat(systemprompt3, temperature=temp)
-            finalNotes += '\n' + ai_completion3.generate_text(l, temperature=temp)
+            finalNotes += '\n' + ai_completion3.generate_text(l, temperature=.25)
         else: 
-            finalNotes += '\n' + ai_completion3.generate_text(l, temperature=temp)
+            finalNotes += '\n' + ai_completion3.generate_text(l, temperature=.25)
 
         i+=1
     
@@ -143,11 +141,21 @@ def generateNotes(fullText: str, model_category: str, model_name: str, api_key:s
 
 
 
-def textToAudio(notes: str, voice_model: str):
+def textToAudio(notes: str, voice_model="David - British Storyteller"):
+
+    def load_api_key(api_key=""):
+        # If api_key is blank, attempt to find from environment variable
+        if api_key == "":
+            try:
+                api_key = os.environ.get("AI_AUDIO_API_KEY")
+                return api_key
+            except Exception as e:
+                print(f"[ERROR] Failed to get API key from environment vars. Output: {str(e)}")
+                return False
 
     def ttsAI(text: str, voice_sample: str, file_name: str):
         # Options
-        API_KEY = "09701d94ca66aa3311a2209c9dfe3fbb"
+        API_KEY = api_key
         # TARGET_VOICE = "Antoni"
         TARGET_VOICE = voice_sample
         # INPUT_TEXT = "meow meow meow. mmmeeeeeooooowwww"
@@ -183,6 +191,8 @@ def textToAudio(notes: str, voice_model: str):
         # eleven_save(audio=synthesized_audio, filename=AUDIO_FILE)
 
         return synthesized_audio
+
+    api_key = load_api_key()
 
     # Audiobook variable to store running audiobook clips concatenated
     audioBook = None
@@ -284,6 +294,10 @@ def textToAudio(notes: str, voice_model: str):
                 i += 1
             else:
                 print("What the flip is going on?!? Wheres my clips!!!!")
+
+
+        # TEST STUFF TO SEE IF FILES ARE BEING CREATED, CONCATENATED, AND INFO IS BEING STORED
+        # ALSO USED TO REVIEW THE FINAL AUDIOBOOK AUDIO FILE
 
         # After iterating through chunks of text
 
