@@ -35,7 +35,7 @@ def create_project(project_name: str = Body(embed=True), session_data: SessionDa
 
 # get project info (given project id)
 @media.post('/project/read', dependencies=[Depends(cookie)])
-def get_project(response: Response, project_id: str = Body(), session_data: SessionData = Depends(verifier)):
+def get_project(response: Response, project_id: str = Body(embed=True), session_data: SessionData = Depends(verifier)):
 
     engine = create_engine(settings.DATABASE_URI)
 
@@ -48,9 +48,15 @@ def get_project(response: Response, project_id: str = Body(), session_data: Sess
 
     project = {}
 
-    stmt = select(Media.name, Media.id, Media.type).where(Media.project_id == getattr(project_id, "id"))
+    stmt = select(Project.name).where(Project.id == project_id)
+    with engine.connect() as conn:
+        project["name"] = conn.execute(stmt).first()[0]
+
+    stmt = select(Media.name, Media.id, Media.type).where(Media.project_id == project_id)
     with engine.connect() as conn:
         media_dbs = conn.execute(stmt)
+
+    project["media"] = []
 
     for media_db in media_dbs:
 
@@ -196,7 +202,7 @@ def get_media(project_id: str, media_id: str, response: Response, session_data: 
 # TODO how to deal with conflicts? require deleting old or allow overwrite?
 # TODO differentiate 404 (not found) and 403 (forbidden)
 @media.post('/project/{project_id}', dependencies=[Depends(cookie)])
-def create_media(response: Response, media_content: Annotated[bytes, File()], project_id: str, media_name: str = Body(), media_type: str  = Body(), session_data: SessionData = Depends(verifier)):
+def create_media(response: Response, media_content: Annotated[bytes, File()], project_id: str, media_name: str = Body(embed=True), media_type: str  = Body(embed=True), session_data: SessionData = Depends(verifier)):
 
     # make sure session.email can access the project
     engine = create_engine(settings.DATABASE_URI)
@@ -217,8 +223,10 @@ def create_media(response: Response, media_content: Annotated[bytes, File()], pr
     with Session(engine) as session:
         session.add(media)
         session.commit()
+        session.refresh(media)
+        media_id = media.id
 
-    return media.id
+    return media_id
 
 # get video
 @media.get('/project/{project_id}/video', dependencies=[Depends(cookie)])
