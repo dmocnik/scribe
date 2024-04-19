@@ -13,7 +13,6 @@ import httpx
 
 API_URL = config.API_URL
 PROJECT_CREATE_URL = f'{API_URL}/project/create'
-PROJECT_READ_URL = f'{API_URL}/project/read'
 PROJECT_LIST_URL = f'{API_URL}/project/list'
 
 #PROJECT_EDIT_URL = f'{API_URL}/project'
@@ -200,8 +199,11 @@ async def content(client: Client):
             else:
                 ui.notify(f'Permanently deleted {num_deleted} projects', position='top-right', type='positive')
 
-    async def open_project(name):
-        ui.navigate.to(f'/project?id=testing&new=True&name={name}', new_tab=True)
+    async def open_project(id, new = False):
+        open_url = f'/project?id={id}'
+        if new:
+            open_url += '&new=True'
+        ui.navigate.to(open_url, new_tab=True)
         return
 
     # Main UI
@@ -243,8 +245,6 @@ async def content(client: Client):
             res = await c.get(PROJECT_LIST_URL, headers={'Cookie': app.storage.user['cookie']}) #Get the projects
             if res.status_code == 200: # If the request was successful, clear the spinner and set the projects
                 projects = res.json()
-                for project in projects:
-                    print(project['name'], project['id'], project['media'])
                 projects_tab.enable()
                 trashed_tab.enable()
                 browser.clear()
@@ -266,7 +266,7 @@ async def content(client: Client):
                     #Create the projects table
                     projects_table = ui.table(columns=project_columns, rows=projects, row_key='id', selection='multiple', on_select=handle_projects_selection) \
                         .classes('w-full') \
-                        .on('row-dblclick', lambda e: open_project(e.args[1]['name']))
+                        .on('row-dblclick', lambda e: open_project(e.args[1]['id']))
                     
                     projects_table.columns[0]['classes'] = 'hidden' # Hide the ID column
                     projects_table.columns[0]['headerClasses'] = 'hidden'
