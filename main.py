@@ -159,13 +159,14 @@ if __name__ == "__main__":
     # Otherwise, run the program via command line interface
     if opts_dict.get("webserver", False):
         print("[gold1][INFO][/gold1]: webserver enabled, running webserver...")
+        # Copy all environment variables to the subprocess
+        env = os.environ.copy()
         # Run the backend by invoking Flask app in ./PYTHON/api/app.py using subprocess
-        backend_process = subprocess.Popen(BACKEND_LAUNCH)
+        backend_process = subprocess.Popen(BACKEND_LAUNCH, stdout=sys.stdout, stderr=sys.stderr, env=env)
         # Run the frontend by invoking NiceGUI in ./PYTHON/frontend/frontend_main.py using subprocess
-        frontend_process = subprocess.Popen(FRONTEND_LAUNCH)
+        frontend_process = subprocess.Popen(FRONTEND_LAUNCH, stdout=sys.stdout, stderr=sys.stderr, env=env)
         # Run the system queue by invoking runner.py in ./PYTHON/queue/runner.py using subprocess
-        system_queue_process = subprocess.Popen(SYSTEM_QUEUE_LAUNCH)
-        # Periodically display the output of the subprocesses
+        system_queue_process = subprocess.Popen(SYSTEM_QUEUE_LAUNCH, stdout=sys.stdout, stderr=sys.stderr, env=env)
         while True:
             try:
                 # Check if the processes are still running
