@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Response, Body, Depends, UploadFile, File
+from fastapi import APIRouter, Response, Body, Depends, UploadFile, File, HTTPException, Header, Form
 from typing import Annotated
 from PYTHON.api.verifier import SessionData, backend, cookie, verifier
 from PYTHON.api.config import settings
 from uuid import uuid4
 from datetime import datetime, timedelta
 
+import os
 
 import sqlalchemy
 from sqlalchemy import update, select, insert, and_, create_engine
@@ -533,3 +534,206 @@ def delete_media(response: Response, project_id: str, media_id: str, session_dat
         session.commit()
 
         return 'ok'
+
+@media.post('/project/{project_id}/internal')
+def create_media_internal(response: Response, media_content: Annotated[bytes, File()], project_id: str, media_name: str = Body(), media_type: str  = Body(), host_key: str = Form(...)):
+    if host_key != os.getenv("HOST_KEY"):
+        response.status_code = 403
+        return "Invalid host key"
+
+    # make sure session.email can access the project
+    engine = create_engine(settings.DATABASE_URI)
+    
+    # make media object
+    media = Media(name=media_name, type=media_type, content=media_content, project_id=project_id)
+
+    # add media object and update project object
+    with Session(engine) as session:
+        session.add(media)
+        session.commit()
+
+    return media.id
+
+# get video, but for internal use requiring no auth besides host key
+@media.post('/project/{project_id}/video/internal')
+def read_media_internal(project_id: str, response: Response, host_key: str = Form(...)):
+    if host_key != os.getenv("HOST_KEY"):
+        response.status_code = 403
+        return "Invalid host key"
+    
+    # make sure session.email owns that media
+    engine = create_engine(settings.DATABASE_URI)
+
+    stmt = select(Media.content) \
+        .join(Project, Project.id == Media.project_id) \
+        .where(and_(
+            Project.id == project_id, 
+            Media.type == 'video',)
+        )    
+    with engine.connect() as conn:
+        res = conn.execute(stmt).first()
+
+    if res is None:
+        response.status_code = 404
+        return "Not Found"
+
+    return Response(content=res[0], media_type="video/mp4")
+
+# get transcript, but for internal use requiring no auth besides host key
+@media.post('/project/{project_id}/transcript/internal')
+def read_media_internal(project_id: str, response: Response, host_key: str = Form(...)):
+    if host_key != os.getenv("HOST_KEY"):
+        response.status_code = 403
+        return "Invalid host key"
+
+    # make sure session.email owns that media
+    engine = create_engine(settings.DATABASE_URI)
+
+    stmt = select(Media.content) \
+        .join(Project, Project.id == Media.project_id) \
+        .where(and_(
+            Project.id == project_id, 
+            Media.type == 'transcript',)
+        )    
+    with engine.connect() as conn:
+        res = conn.execute(stmt).first()
+
+    if res is None:
+        response.status_code = 404
+        return "Not Found"
+
+    return Response(content=res[0], media_type="text/plain")
+
+# get aisummary, but for internal use requiring no auth besides host key
+@media.post('/project/{project_id}/aisummary/internal')
+def read_media_internal(project_id: str, response: Response, host_key: str = Form(...)):
+    if host_key != os.getenv("HOST_KEY"):
+        response.status_code = 403
+        return "Invalid host key"
+        
+    # make sure session.email owns that media
+    engine = create_engine(settings.DATABASE_URI)
+    
+    stmt = select(Media.content) \
+        .join(Project, Project.id == Media.project_id) \
+        .where(and_(
+            Project.id == project_id, 
+            Media.type == 'aisummary',)
+        )    
+    with engine.connect() as conn:
+        res = conn.execute(stmt).first()
+    
+    if res is None:
+        response.status_code = 404
+        return "Not Found"
+    
+    return Response(content=res[0], media_type="text/plain")
+
+# get ai_audio, but for internal use requiring no auth besides host key
+@media.post('/project/{project_id}/aiaudio/internal')
+def read_media_internal(project_id: str, response: Response, host_key: str = Form(...)):
+    if host_key != os.getenv("HOST_KEY"):
+        response.status_code = 403
+        return "Invalid host key"
+        
+    # make sure session.email owns that media
+    engine = create_engine(settings.DATABASE_URI)
+    stmt = select(Media.content) \
+        .join(Project, Project.id == Media.project_id) \
+        .where(and_(
+            Project.id == project_id, 
+            Media.type == 'aiaudio',)
+        )    
+    with engine.connect() as conn:
+        res = conn.execute(stmt).first()
+
+    if res is None:
+        response.status_code = 404
+        return "Not Found"
+
+    return Response(content=res[0], media_type="audio/mp3")
+
+# post ai_video, but for internal use requiring no auth besides host key
+@media.post('/project/{project_id}/aivideo/internal')
+def read_media_internal(project_id: str, response: Response, host_key: str = Form(...)):
+
+    if host_key != os.getenv("HOST_KEY"):
+        response.status_code = 403
+        return "Invalid host key"
+
+    # make sure session.email owns that media
+    engine = create_engine(settings.DATABASE_URI)
+
+    stmt = select(Media.content) \
+        .join(Project, Project.id == Media.project_id) \
+        .where(and_(
+            Project.id == project_id, 
+            Media.type == 'aivideo',)
+        )    
+    with engine.connect() as conn:
+        res = conn.execute(stmt).first()
+
+    if res is None:
+        response.status_code = 404
+        return "Not Found"
+
+    return Response(content=res[0], media_type="video/mp4")
+
+# get aiaudio_clips, but for internal use requiring no auth besides host key
+# this is a json file
+@media.post('/project/{project_id}/aiaudio_clips/internal')
+def read_media_internal(project_id: str, response: Response, host_key: str = Form(...)):
+    if host_key != os.getenv("HOST_KEY"):
+        response.status_code = 403
+        return "Invalid host key"
+
+    # make sure session.email owns that media
+    engine = create_engine(settings.DATABASE_URI)
+
+    stmt = select(Media.content) \
+        .join(Project, Project.id == Media.project_id) \
+        .where(and_(
+            Project.id == project_id, 
+            Media.type == 'aiaudio_clips',)
+        )    
+    with engine.connect() as conn:
+        res = conn.execute(stmt).first()
+
+    if res is None:
+        response.status_code = 404
+        return "Not Found"
+
+    return Response(content=res[0], media_type="application/json")
+
+# delete media (given media id), but for internal use requiring no auth besides host key
+@media.post("/project/{project_id}/media/{media_id}/delete/internal")
+def delete_media_internal(response: Response, project_id: str, media_id: str, host_key: str = Form(...)):
+
+    if host_key != os.getenv("HOST_KEY"):
+        raise HTTPException(status_code=403, detail="Invalid host key.")
+
+    engine = create_engine(settings.DATABASE_URI)
+
+    with Session(engine) as session:
+
+        media = session.get(Media, media_id)
+        session.delete(media)
+
+        project = session.get(Project, project_id)
+        project.last_modified = datetime.utcnow()
+
+        session.commit()
+
+        return 'ok'
+    
+# Healthcheck to verify if the hostkey is correct
+@media.post('/healthcheck/internal')
+def healthcheck_internal(host_key: str = Form(...)):  # Get the host key from the form body
+    if host_key != os.getenv("HOST_KEY"):
+        raise HTTPException(status_code=403, detail="Invalid host key, you provided: " + host_key)
+    return 'ok'
+
+# Regular healthcheck
+@media.get('/healthcheck')
+def healthcheck():
+    return 'ok'

@@ -4,7 +4,7 @@ services:
     image: mariadb:latest
     restart: unless-stopped
     container_name: scribe_db
-    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW --max-allowed-packet=1073741824
     volumes:
       - scribe_data:/var/lib/mysql
       - ./CONFIG/scribe_database.sql:/docker-entrypoint-initdb.d/scribe_database.sql
@@ -38,6 +38,9 @@ services:
       - SMTP_SERVER=${SMTP_SERVER}
       - FRONTEND_URL=${FRONTEND_URL}
       - DATABASE_CONNECTOR=${DATABASE_CONNECTOR}
+      - AI_API_KEY=${AI_API_KEY}
+      - AI_AUDIO_API_KEY=${AI_AUDIO_API_KEY}
+      - HOST_KEY=${HOST_KEY}
     volumes:
       - scribe_persist_frontend:/app/.nicegui
       - scribe_persist_backend:/app/flask_session
