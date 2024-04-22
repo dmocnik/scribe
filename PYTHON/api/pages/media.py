@@ -3,7 +3,8 @@ from typing import Annotated
 from PYTHON.api.verifier import SessionData, backend, cookie, verifier
 from PYTHON.api.config import settings
 from uuid import uuid4
-import base64
+from datetime import datetime, timedelta
+
 
 import sqlalchemy
 from sqlalchemy import update, select, insert, and_, create_engine
@@ -26,7 +27,7 @@ def create_project(project_name: str = Body(embed=True), session_data: SessionDa
         user_id = conn.execute(stmt).first()[0]
 
     # make a new project object w/ project name and user_id
-    project = Project(name=project_name, user_id=user_id)
+    project = Project(name=project_name, user_id=user_id, status='Waiting for Upload', last_modified=datetime.utcnow())
     with Session(engine) as session:
         session.add(project)
         session.commit()
@@ -41,18 +42,21 @@ def get_project(response: Response, project_id: str = Body(embed=True), session_
 
     stmt = select(User.id).join(Project).where(and_(Project.id == project_id, User.email == session_data.email))
     with engine.connect() as conn:
-        res = conn.execute(stmt)
+        res = conn.execute(stmt).first()
 
     if res is None:
-        return 404
+        response.status_code = 404
+        return
 
-    project = {}
-
-    stmt = select(Project.name).where(Project.id == project_id)
+    stmt = select(Project.id, Project.name, Project.trashed, Project.last_modified).where(Project.id == project_id)
     with engine.connect() as conn:
-        project["name"] = conn.execute(stmt).first()[0]
+        project_db = conn.execute(stmt).first()
 
-    stmt = select(Media.name, Media.id, Media.type).where(Media.project_id == project_id)
+    project = project_db._asdict()
+
+    project["media"] = []
+
+    stmt = select(Media.name, Media.id, Media.type, Media.file_type).where(Media.project_id == project_id)
     with engine.connect() as conn:
         media_dbs = conn.execute(stmt)
 
@@ -64,7 +68,7 @@ def get_project(response: Response, project_id: str = Body(embed=True), session_
 
     return project
 
-# update project (can only really update name)
+# update project name
 @media.post('/project/{project_id}/edit', dependencies=[Depends(cookie)])
 def update_project(project_id: str, response: Response, project_name: str = Body(embed=True), session_data: SessionData = Depends(verifier)):
 
@@ -84,13 +88,14 @@ def update_project(project_id: str, response: Response, project_name: str = Body
     with Session(engine) as session:
         project = session.get(Project, project_id)
         project.name = project_name
+        project.last_modified = datetime.utcnow()
         session.commit()
 
         return project.id
 
 # delete project (given project id)
 @media.post('/project/{project_id}/delete', dependencies=[Depends(cookie)])
-def update_project(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
+def delete_project(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
 
     # connect to db
     engine = create_engine(settings.DATABASE_URI)
@@ -112,6 +117,54 @@ def update_project(project_id: str, response: Response, session_data: SessionDat
 
         return "ok"
 
+# trash project
+@media.post('/project/{project_id}/trash', dependencies=[Depends(cookie)])
+def trash_project(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
+
+    # connect to db
+    engine = create_engine(settings.DATABASE_URI)
+
+    # get user id from session email
+    stmt = select(User.id).join(Project).where(and_(Project.id == project_id, User.email == session_data.email))
+    with engine.connect() as conn:
+        user_id = conn.execute(stmt).first()[0]
+
+    if user_id is None:
+        response.status_code = 404
+        return "Not Found"
+
+    # make a new project object w/ project name and user_id
+    with Session(engine) as session:
+        project = session.get(Project, project_id)
+        project.trashed = True
+        session.commit()
+
+        return "ok"
+
+# restore project after being trashed
+@media.post('/project/{project_id}/restore', dependencies=[Depends(cookie)])
+def trash_project(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
+
+    # connect to db
+    engine = create_engine(settings.DATABASE_URI)
+
+    # get user id from session email
+    stmt = select(User.id).join(Project).where(and_(Project.id == project_id, User.email == session_data.email))
+    with engine.connect() as conn:
+        user_id = conn.execute(stmt).first()[0]
+
+    if user_id is None:
+        response.status_code = 404
+        return "Not Found"
+
+    # make a new project object w/ project name and user_id
+    with Session(engine) as session:
+        project = session.get(Project, project_id)
+        project.trashed = False
+        session.commit()
+
+        return "ok"
+
 # list project objects
 @media.get('/project/list', dependencies=[Depends(cookie)])
 def list_projects(session_data: SessionData = Depends(verifier)):
@@ -120,7 +173,7 @@ def list_projects(session_data: SessionData = Depends(verifier)):
     engine = create_engine(settings.DATABASE_URI)
 
     # get user id from session email
-    stmt = select(Project.id, Project.name).join(User).where(User.email == session_data.email)
+    stmt = select(Project.id, Project.name, Project.trashed, Project.last_modified).join(User).where(User.email == session_data.email)
     with engine.connect() as conn:
         project_dbs = conn.execute(stmt)
 
@@ -131,10 +184,12 @@ def list_projects(session_data: SessionData = Depends(verifier)):
         project = {
             "name": getattr(project_db, "name"),
             "id": getattr(project_db, "id"),
+            "trashed": getattr(project_db, "trashed"),
+            "last_modified": getattr(project_db, "last_modified"),
             "media": []
         }
 
-        stmt = select(Media.name, Media.id, Media.type).where(Media.project_id == getattr(project_db, "id"))
+        stmt = select(Media.name, Media.id, Media.type, Media.file_type).where(Media.project_id == getattr(project_db, "id"))
         with engine.connect() as conn:
             media_dbs = conn.execute(stmt)
 
@@ -146,48 +201,13 @@ def list_projects(session_data: SessionData = Depends(verifier)):
 
     return projects
 
-
-
-
-    # get project ids
-    stmt = select(Media.id, Media.name, Media.type, Media.project_id).join(Project, Project.id == Media.project_id, isouter=True).where(Project.user_id == user_id)
-    with engine.connect() as conn:
-        res = conn.execute(stmt)
-
-         # initialize a dictionary to store projects and their media
-        projects = {}
-
-        # iterate through the query result
-        for db_row in res:
-            media_info = {
-                "id": db_row.id,
-                "name": db_row.name,
-                "type": db_row.type
-            }
-
-            # if project already exists in the dictionary, append media to it
-            if db_row.project_id in projects:
-                projects[db_row.project_id]["media"].append(media_info)
-            # if project doesn't exist, create a new entry
-            else:
-                projects[db_row.project_id] = {
-                    "project_id": db_row.project_id,
-                    "media": [media_info]
-                }
-
-        # convert the dictionary to a list of projects
-        projects_list = list(projects.values())
-
-    # return the projects objects!
-    return projects_list
-
-# get name and type for media_id
+# get name, type, and file type of media
 @media.get('/project/{project_id}/media/{media_id}', dependencies=[Depends(cookie)])
 def get_media(project_id: str, media_id: str, response: Response, session_data: SessionData = Depends(verifier)):
 
     engine = create_engine(settings.DATABASE_URI)
     
-    stmt = select(Media.name, Media.type).join(Project, Project.id == Media.project_id).join(User, User.id == Project.user_id).where(and_(Media.id == media_id, Media.project_id == project_id, User.email == session_data.email))
+    stmt = select(Media.name, Media.type, Media.file_type).join(Project, Project.id == Media.project_id).join(User, User.id == Project.user_id).where(and_(Media.id == media_id, Media.project_id == project_id, User.email == session_data.email))
     print(stmt)
     with engine.connect() as conn:
         row = conn.execute(stmt).first()
@@ -202,7 +222,14 @@ def get_media(project_id: str, media_id: str, response: Response, session_data: 
 # TODO how to deal with conflicts? require deleting old or allow overwrite?
 # TODO differentiate 404 (not found) and 403 (forbidden)
 @media.post('/project/{project_id}', dependencies=[Depends(cookie)])
-def create_media(response: Response, media_content: Annotated[bytes, File()], project_id: str, media_name: str = Body(embed=True), media_type: str  = Body(embed=True), session_data: SessionData = Depends(verifier)):
+def create_media(
+    response: Response, 
+    media_content: Annotated[bytes, File()], 
+    project_id: str, 
+    media_name: str = Body(), 
+    media_type: str  = Body(),
+    file_type: str = Body(), 
+    session_data: SessionData = Depends(verifier)):
 
     # make sure session.email can access the project
     engine = create_engine(settings.DATABASE_URI)
@@ -217,7 +244,7 @@ def create_media(response: Response, media_content: Annotated[bytes, File()], pr
         return "Not Found"
     
     # make media object
-    media = Media(name=media_name, type=media_type, content=media_content, project_id=project_id)
+    media = Media(name=media_name, type=media_type, content=media_content, project_id=project_id, file_type=file_type)
 
     # add media object and update project object
     with Session(engine) as session:
@@ -226,11 +253,11 @@ def create_media(response: Response, media_content: Annotated[bytes, File()], pr
         session.refresh(media)
         media_id = media.id
 
-    return media_id
+        return media.id
 
-# get video
-@media.get('/project/{project_id}/video', dependencies=[Depends(cookie)])
-def read_media(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
+# get video mp4
+@media.get('/project/{project_id}/video/mp4', dependencies=[Depends(cookie)])
+def read_video_mp4(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
 
     # make sure session.email owns that media
     engine = create_engine(settings.DATABASE_URI)
@@ -241,7 +268,8 @@ def read_media(project_id: str, response: Response, session_data: SessionData = 
         .where(and_(
             User.email == session_data.email, 
             Project.id == project_id, 
-            Media.type == 'video',)
+            Media.type == 'video',
+            Media.file_type == 'mp4')
         )    
     with engine.connect() as conn:
         res = conn.execute(stmt).first()
@@ -251,10 +279,35 @@ def read_media(project_id: str, response: Response, session_data: SessionData = 
         return "Not Found"
    
     return Response(content=res[0], media_type="video/mp4")
+
+# get video mov
+@media.get('/project/{project_id}/video/mov', dependencies=[Depends(cookie)])
+def read_media_wav(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
+
+    # make sure session.email owns that media
+    engine = create_engine(settings.DATABASE_URI)
+
+    stmt = select(Media.content) \
+        .join(Project, Project.id == Media.project_id) \
+        .join(User, User.id == Project.user_id) \
+        .where(and_(
+            User.email == session_data.email, 
+            Project.id == project_id, 
+            Media.type == 'video',
+            Media.file_type == 'mov')
+        )    
+    with engine.connect() as conn:
+        res = conn.execute(stmt).first()
+
+    if res is None:
+        response.status_code = 404
+        return "Not Found"
+   
+    return Response(content=res[0], media_type="video/mov")
         
-# get transcript
-@media.get('/project/{project_id}/transcript', dependencies=[Depends(cookie)])
-def read_media(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
+# get transcript txt
+@media.get('/project/{project_id}/transcript/txt', dependencies=[Depends(cookie)])
+def read_media_txt(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
 
     # make sure session.email owns that media
     engine = create_engine(settings.DATABASE_URI)
@@ -265,7 +318,8 @@ def read_media(project_id: str, response: Response, session_data: SessionData = 
         .where(and_(
             User.email == session_data.email, 
             Project.id == project_id, 
-            Media.type == 'transcript',)
+            Media.type == 'transcript',
+            Media.file_type == 'txt',)
         )    
     with engine.connect() as conn:
         res = conn.execute(stmt).first()
@@ -276,8 +330,8 @@ def read_media(project_id: str, response: Response, session_data: SessionData = 
    
     return Response(content=res[0], media_type="text/plain")
 
-# get aisummary
-@media.get('/project/{project_id}/aisummary', dependencies=[Depends(cookie)])
+# get aisummary txt
+@media.get('/project/{project_id}/aisummary/txt', dependencies=[Depends(cookie)])
 def read_media(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
 
     # make sure session.email owns that media
@@ -289,7 +343,8 @@ def read_media(project_id: str, response: Response, session_data: SessionData = 
         .where(and_(
             User.email == session_data.email, 
             Project.id == project_id, 
-            Media.type == 'aisummary',)
+            Media.type == 'aisummary',
+            Media.file_type == 'txt')
         )    
     with engine.connect() as conn:
         res = conn.execute(stmt).first()
@@ -300,8 +355,8 @@ def read_media(project_id: str, response: Response, session_data: SessionData = 
    
     return Response(content=res[0], media_type="text/plain")
 
-# get ai_audio
-@media.get('/project/{project_id}/aiaudio', dependencies=[Depends(cookie)])
+# get aisummary md
+@media.get('/project/{project_id}/aisummary/md', dependencies=[Depends(cookie)])
 def read_media(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
 
     # make sure session.email owns that media
@@ -313,7 +368,58 @@ def read_media(project_id: str, response: Response, session_data: SessionData = 
         .where(and_(
             User.email == session_data.email, 
             Project.id == project_id, 
-            Media.type == 'aiaudio',)
+            Media.type == 'aisummary',
+            Media.file_type == 'md')
+        )    
+    with engine.connect() as conn:
+        res = conn.execute(stmt).first()
+
+    if res is None:
+        response.status_code = 404
+        return "Not Found"
+   
+    return Response(content=res[0], media_type="text/markdown")
+
+# get aisummary pdf
+@media.get('/project/{project_id}/aisummary/pdf', dependencies=[Depends(cookie)])
+def read_media(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
+
+    # make sure session.email owns that media
+    engine = create_engine(settings.DATABASE_URI)
+
+    stmt = select(Media.content) \
+        .join(Project, Project.id == Media.project_id) \
+        .join(User, User.id == Project.user_id) \
+        .where(and_(
+            User.email == session_data.email, 
+            Project.id == project_id, 
+            Media.type == 'aisummary',
+            Media.file_type == 'pdf')
+        )    
+    with engine.connect() as conn:
+        res = conn.execute(stmt).first()
+
+    if res is None:
+        response.status_code = 404
+        return "Not Found"
+   
+    return Response(content=res[0], media_type="application/pdf")
+
+# get ai_audio mp3
+@media.get('/project/{project_id}/aiaudio/mp3', dependencies=[Depends(cookie)])
+def read_media(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
+
+    # make sure session.email owns that media
+    engine = create_engine(settings.DATABASE_URI)
+
+    stmt = select(Media.content) \
+        .join(Project, Project.id == Media.project_id) \
+        .join(User, User.id == Project.user_id) \
+        .where(and_(
+            User.email == session_data.email, 
+            Project.id == project_id, 
+            Media.type == 'aiaudio',
+            Media.file_type == 'mp3')
         )    
     with engine.connect() as conn:
         res = conn.execute(stmt).first()
@@ -324,8 +430,8 @@ def read_media(project_id: str, response: Response, session_data: SessionData = 
    
     return Response(content=res[0], media_type="audio/mp3")
 
-# get ai_video
-@media.get('/project/{project_id}/aivideo', dependencies=[Depends(cookie)])
+# get ai_audio wav
+@media.get('/project/{project_id}/aiaudio/wav', dependencies=[Depends(cookie)])
 def read_media(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
 
     # make sure session.email owns that media
@@ -337,7 +443,33 @@ def read_media(project_id: str, response: Response, session_data: SessionData = 
         .where(and_(
             User.email == session_data.email, 
             Project.id == project_id, 
-            Media.type == 'aivideo',)
+            Media.type == 'aiaudio',
+            Media.file_type == 'wav')
+        )    
+    with engine.connect() as conn:
+        res = conn.execute(stmt).first()
+
+    if res is None:
+        response.status_code = 404
+        return "Not Found"
+   
+    return Response(content=res[0], media_type="audio/wav")
+
+# get ai_video mp4
+@media.get('/project/{project_id}/aivideo/mp4', dependencies=[Depends(cookie)])
+def read_media(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
+
+    # make sure session.email owns that media
+    engine = create_engine(settings.DATABASE_URI)
+
+    stmt = select(Media.content) \
+        .join(Project, Project.id == Media.project_id) \
+        .join(User, User.id == Project.user_id) \
+        .where(and_(
+            User.email == session_data.email, 
+            Project.id == project_id, 
+            Media.type == 'aivideo',
+            Media.file_type == 'mp4')
         )    
     with engine.connect() as conn:
         res = conn.execute(stmt).first()
@@ -347,6 +479,31 @@ def read_media(project_id: str, response: Response, session_data: SessionData = 
         return "Not Found"
    
     return Response(content=res[0], media_type="video/mp4")
+
+# get ai_video mov
+@media.get('/project/{project_id}/aivideo/mov', dependencies=[Depends(cookie)])
+def read_media(project_id: str, response: Response, session_data: SessionData = Depends(verifier)):
+
+    # make sure session.email owns that media
+    engine = create_engine(settings.DATABASE_URI)
+
+    stmt = select(Media.content) \
+        .join(Project, Project.id == Media.project_id) \
+        .join(User, User.id == Project.user_id) \
+        .where(and_(
+            User.email == session_data.email, 
+            Project.id == project_id, 
+            Media.type == 'aivideo',
+            Media.file_type == 'mov')
+        )    
+    with engine.connect() as conn:
+        res = conn.execute(stmt).first()
+
+    if res is None:
+        response.status_code = 404
+        return "Not Found"
+   
+    return Response(content=res[0], media_type="video/mov")
 
 # update media (given media id, field to update, and new content)
 # TODO decide on workflow
@@ -369,6 +526,10 @@ def delete_media(response: Response, project_id: str, media_id: str, session_dat
 
         media = session.get(Media, media_id)
         session.delete(media)
+
+        project = session.get(Project, project_id)
+        project.last_modified = datetime.utcnow()
+
         session.commit()
 
         return 'ok'
