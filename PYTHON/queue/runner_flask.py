@@ -38,6 +38,12 @@ Example task json:
     "action": "make_video",
     "parameters": ["output/audiobook.wav", "output/new_video.mp4", "Antoni", 3]
 }
+
+# enum('Ready','Waiting for Upload','Processing')
+{
+    "action": "set_project_status",
+    "parameters": [3, "Processing"]
+}
 """
 
 # Define the add_action endpoint
