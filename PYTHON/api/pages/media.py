@@ -366,8 +366,8 @@ def delete_media(response: Response, project_id: str, media_id: str, session_dat
 
         return 'ok'
 
-@media.post('/project/{project_id}')
-def create_media(response: Response, media_content: Annotated[bytes, File()], project_id: str, media_name: str = Body(), media_type: str  = Body(), host_key: str = Form(...)):
+@media.post('/project/{project_id}/internal')
+def create_media_internal(response: Response, media_content: Annotated[bytes, File()], project_id: str, media_name: str = Body(), media_type: str  = Body(), host_key: str = Form(...)):
     if host_key != os.getenv("HOST_KEY"):
         response.status_code = 403
         return "Invalid host key"

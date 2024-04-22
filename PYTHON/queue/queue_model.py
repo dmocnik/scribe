@@ -117,26 +117,42 @@ class queue_model:
                 self.remove_temp_folder(temp_folder)
             # Summarize transcript
             elif action[0] == 'summarize_transcript':
+                # Set options for DB upload
+                project_id = action[1][2]
+                media_name = os.path.basename(action[1][1])
+                media_type = "aisummary" # Name identifier for AI generated summary
                 # Create temp folder
                 temp_folder = self.create_temp_folder()
                 # Retrieve file
-                self.retrieve_file(action[1][0], temp_folder)
+                # self.retrieve_file(action[1][0], temp_folder)
+                # Retrieve file from database
+                self.retrieve_file_db(project_id, 'transcript', action[1][0], temp_folder)
                 # Summarize transcript
                 self.summarize_transcript(os.path.join(temp_folder, os.path.basename(action[1][0])), os.path.join(temp_folder, os.path.basename(action[1][1])))
                 # Put new file in the output folder, which is listed in the second parameter
-                self.put_file(action[1][1], temp_folder, os.path.dirname(action[1][1]))
+                # self.put_file(action[1][1], temp_folder, os.path.dirname(action[1][1]))
+                # Put new file in the database
+                self.put_file_db(action[1][1], temp_folder, project_id, media_name, media_type)
                 # Remove temp folder
                 self.remove_temp_folder(temp_folder)
             # Get audiobook
             elif action[0] == 'get_audiobook':
+                # Set options for DB upload
+                project_id = action[1][3]
+                media_name = os.path.basename(action[1][1])
+                media_type = "aiaudio" # Name identifier for audiobook
                 # Create temp folder
                 temp_folder = self.create_temp_folder()
                 # Retrieve file
-                self.retrieve_file(action[1][0], temp_folder)
+                # self.retrieve_file(action[1][0], temp_folder)
+                # Retrieve file from database
+                self.retrieve_file_db(project_id, 'aisummary', action[1][0], temp_folder)
                 # Get audiobook
                 self.get_audiobook(os.path.join(temp_folder, os.path.basename(action[1][0])), os.path.join(temp_folder, os.path.basename(action[1][1])), action[1][2])
                 # Put new file in the output folder, which is listed in the second parameter
-                self.put_file(action[1][1], temp_folder, os.path.dirname(action[1][1]))
+                # self.put_file(action[1][1], temp_folder, os.path.dirname(action[1][1]))
+                # Put new file in the database
+                self.put_file_db(action[1][1], temp_folder, project_id, media_name, media_type)
                 # Remove temp folder
                 self.remove_temp_folder(temp_folder)
             # Mark as done

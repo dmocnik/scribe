@@ -31,12 +31,12 @@ Example task json:
 
 {
     "action": "summarize_transcript",
-    "parameters": ["output/transcript.txt", "output/summary.txt"]
+    "parameters": ["output/transcript.txt", "output/summary.txt", 3]
 }
 
 {
     "action": "get_audiobook",
-    "parameters": ["output/summary.txt", "output/audiobook.wav", "Antoni"]
+    "parameters": ["output/summary.txt", "output/audiobook.wav", "Antoni", 3]
 }
 """
 
