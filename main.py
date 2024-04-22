@@ -159,12 +159,14 @@ if __name__ == "__main__":
     # Otherwise, run the program via command line interface
     if opts_dict.get("webserver", False):
         print("[gold1][INFO][/gold1]: webserver enabled, running webserver...")
+        # Copy all environment variables to the subprocess
+        env = os.environ.copy()
         # Run the backend by invoking Flask app in ./PYTHON/api/app.py using subprocess
-        backend_process = subprocess.Popen(BACKEND_LAUNCH)
+        backend_process = subprocess.Popen(BACKEND_LAUNCH, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
         # Run the frontend by invoking NiceGUI in ./PYTHON/frontend/frontend_main.py using subprocess
-        frontend_process = subprocess.Popen(FRONTEND_LAUNCH)
+        frontend_process = subprocess.Popen(FRONTEND_LAUNCH, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
         # Run the system queue by invoking runner.py in ./PYTHON/queue/runner.py using subprocess
-        system_queue_process = subprocess.Popen(SYSTEM_QUEUE_LAUNCH)
+        # system_queue_process = subprocess.Popen(SYSTEM_QUEUE_LAUNCH, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
         # Periodically display the output of the subprocesses
         while True:
             try:
@@ -175,10 +177,18 @@ if __name__ == "__main__":
                 if frontend_process.poll() is not None:
                     print("[red][ERROR][/red]: Frontend process has stopped running. Exiting...")
                     quit()
-                if system_queue_process.poll() is not None:
-                    print("[red][ERROR][/red]: System queue process has stopped running. Exiting...")
-                    quit()
+                # if system_queue_process.poll() is not None:
+                #     print("[red][ERROR][/red]: System queue process has stopped running. Exiting...")
+                #     quit()
                 print(f"[gold1][INFO][/gold1]: Heartbeat check-in. Sleeping for 60 seconds...")
+                # Print the output of the processes
+                print(f"[gold1][INFO][/gold1]: Backend process output: {backend_process.stdout.read().decode()}")
+                print(f"[gold1][INFO][/gold1]: Frontend process output: {frontend_process.stdout.read().decode()}")
+                # print(f"[gold1][INFO][/gold1]: System queue process output: {system_queue_process.stdout.read().decode()}")
+                # Flush the output buffer for all processes
+                backend_process.stdout.flush()
+                frontend_process.stdout.flush()
+                # system_queue_process.stdout.flush()
                 time.sleep(60)
             except KeyboardInterrupt:
                 print("[gold1][INFO][/gold1]: Keyboard interrupt detected, exiting webserver cleanly...")
@@ -187,8 +197,8 @@ if __name__ == "__main__":
                     backend_process.kill()
                 if frontend_process and frontend_process.poll() is None:
                     frontend_process.kill()
-                if system_queue_process and system_queue_process.poll() is None:
-                    system_queue_process.kill()
+                # if system_queue_process and system_queue_process.poll() is None:
+                #     system_queue_process.kill()
                 quit()
     else:
         print("[gold1][INFO][/gold1]: webserver disabled, running program in standalone mode for testing...")

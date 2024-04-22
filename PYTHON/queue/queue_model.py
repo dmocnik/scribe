@@ -13,6 +13,7 @@ try:
     import importlib.util # Used to import files from a path
     import random # Random string generation [1/2]
     import string # Random string generation [2/2]
+    import mimetypes # File type detection
     import requests # HTTP requests
     from rich import print as rich_print # Pretty print
     from rich.traceback import install # Pretty traceback
@@ -38,21 +39,32 @@ class queue_model:
     # Initialize queue for actions across ALL objects
     q = queue.Queue()
 
-    def __init__(self, system_user, system_password):
+    def __init__(self, system_user="", system_password="", host_key=""):
         print("[INFO] Initializing queue model...")
-        self.session = requests.Session()
+        # If host_key is not set, attempt to get from os.getenv
+        if not host_key or host_key == "":
+            host_key = os.getenv("HOST_KEY")
+            print(f"[INFO] HOST_KEY not set. Using environment variable: '{host_key}'.")
+        # If host_key is still not set, raise an error
+        if not host_key:
+            raise ValueError("[ERROR] HOST_KEY not set.")
+        # Set the host key
+        self.host_key = host_key
         try:
-            response = self.session.post('http://scribe_app:8000/login', json={'email': system_user, 'password': system_password})
+            response = requests.post('http://scribe_app:8000/healthcheck/internal', data={'host_key': self.host_key})
             if response.status_code == 200:
                 print("[INFO] Successfully authenticated with the Scribe App.")
             else:
-                print(f"[ERROR] Failed to authenticate with the Scribe App. Status code: {response.status_code}")
+                print(f"[ERROR] Failed to authenticate with the Scribe App. Status code: {response.status_code}. Response: {response.text}")
         except Exception as e:
             print(f"[ERROR] Failed to authenticate with the Scribe App. Error: {e}")
 
     def make_request(self, url, method='get', **kwargs):
         try:
-            response = self.session.request(method, url, **kwargs)
+            if method == 'get':
+                response = requests.get(url, **kwargs)
+            elif method == 'post':
+                response = requests.post(url, **kwargs)
             response.raise_for_status()
             return response
         except Exception as e:
@@ -85,14 +97,22 @@ class queue_model:
                 self.remove_temp_folder(temp_folder)
             # Make transcript
             elif action[0] == 'make_transcript':
+                # Set options for DB upload
+                project_id = action[1][7]
+                media_name = os.path.basename(action[1][1])
+                media_type = "transcript" # Name identifier for lecture transcript
                 # Create temp folder
                 temp_folder = self.create_temp_folder()
                 # Retrieve file
-                self.retrieve_file(action[1][0], temp_folder)
+                # self.retrieve_file(action[1][0], temp_folder)
+                # Retrieve file from database
+                self.retrieve_file_db(project_id, 'video', action[1][0], temp_folder)
                 # Make transcript
                 self.make_transcript(os.path.join(temp_folder, os.path.basename(action[1][0])), os.path.join(temp_folder, os.path.basename(action[1][1])), output=action[1][2], task=action[1][3], language=action[1][4], word_timestamps=action[1][5], encode=action[1][6])
                 # Put new file in the output folder, which is listed in the second parameter
-                self.put_file(action[1][1], temp_folder, os.path.dirname(action[1][1]))
+                # self.put_file(action[1][1], temp_folder, os.path.dirname(action[1][1]))
+                # Put new file in the database
+                self.put_file_db(action[1][1], temp_folder, project_id, media_name, media_type)
                 # Remove temp folder
                 self.remove_temp_folder(temp_folder)
             # Summarize transcript
@@ -160,16 +180,24 @@ class queue_model:
         # Put a file back from inside the temp folder to the database
         print(f"[QUEUE] Putting file {file_path} back from temp folder {temp_folder} to database...")
         try:
-            response = self.make_request(f'http://scribe_app:8000/project/{project_id}', method='post', files={'media_content': open(os.path.join(temp_folder, os.path.basename(file_path)), 'rb')}, data={'media_name': media_name, 'media_type': media_type})
+            file_name = os.path.basename(file_path)
+            file_full_path = os.path.join(temp_folder, file_name)
+            mime_type, _ = mimetypes.guess_type(file_name)
+            
+            with open(file_full_path, 'rb') as f:
+                files = {'media_content': (file_name, f, mime_type)}
+                data = {'media_name': media_name, 'media_type': media_type, 'host_key': self.host_key}
+                response = self.make_request(f'http://scribe_app:8000/project/{project_id}/internal', method='post', files=files, data=data)
+            
             print(response.text)
         except Exception as e:
             print(f"[ERROR] Failed to move {file_path} from temp folder {temp_folder} to database. Error: {e}")
     
     def retrieve_file_db(self, project_id, media_type, file_path, temp_folder):
-        # Make GET request to http://scribe_app:8000/project/{project_id}/{media_type} to retrieve a file
+        # Make GET request to http://scribe_app:8000/project/{project_id}/{media_type}/internal to retrieve a file
         print(f"[QUEUE] Retrieving file from database for project {project_id} and media type {media_type}...")
         try:
-            response = self.make_request(f'http://scribe_app:8000/project/{project_id}/{media_type}')
+            response = self.make_request(f'http://scribe_app:8000/project/{project_id}/{media_type}/internal', method='post', data={'host_key': self.host_key})
             with open(os.path.join(temp_folder, os.path.basename(file_path)), 'wb') as file:
                 file.write(response.content)
         except Exception as e:

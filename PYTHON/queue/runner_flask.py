@@ -26,7 +26,7 @@ Example task json:
 
 {
     "action": "make_transcript",
-    "parameters": ["input/sample_video.mp4", "output/transcript.txt", "text", "transcribe", "en", false, true]
+    "parameters": ["sample_video.mp4", "transcript.txt", "text", "transcribe", "en", false, true, 3]
 }
 
 {
