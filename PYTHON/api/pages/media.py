@@ -737,3 +737,22 @@ def healthcheck_internal(host_key: str = Form(...)):  # Get the host key from th
 @media.get('/healthcheck')
 def healthcheck():
     return 'ok'
+
+@media.post('/project/{project_id}/status/internal')
+def update_project_status(project_id: str, response: Response, status_name: str = Form(...), host_key: str = Form(...)):
+    if host_key != os.getenv("HOST_KEY"):
+        raise HTTPException(status_code=403, detail="Invalid host key.")
+
+    # connect to db
+    engine = create_engine(settings.DATABASE_URI)
+
+    # enum('Ready','Waiting for Upload','Processing')
+
+    # make a new project object w/ status name and user_id
+    with Session(engine) as session:
+        project = session.get(Project, project_id)
+        project.status = status_name
+        project.last_modified = datetime.utcnow()
+        session.commit()
+
+        return project.id

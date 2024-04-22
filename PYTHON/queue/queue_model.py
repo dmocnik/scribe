@@ -105,6 +105,8 @@ class queue_model:
                 project_id = action[1][7]
                 media_name = os.path.basename(action[1][1])
                 media_type = "transcript" # Name identifier for lecture transcript
+                # Set project status to processing
+                self.set_project_status_db(project_id, "Processing")
                 # Create temp folder
                 temp_folder = self.create_temp_folder()
                 # Retrieve file
@@ -119,12 +121,16 @@ class queue_model:
                 self.put_file_db(action[1][1], temp_folder, project_id, media_name, media_type)
                 # Remove temp folder
                 self.remove_temp_folder(temp_folder)
+                # Set project status to Ready
+                self.set_project_status_db(project_id, "Ready")
             # Summarize transcript
             elif action[0] == 'summarize_transcript':
                 # Set options for DB upload
                 project_id = action[1][2]
                 media_name = os.path.basename(action[1][1])
                 media_type = "aisummary" # Name identifier for AI generated summary
+                # Set project status to processing
+                self.set_project_status_db(project_id, "Processing")
                 # Create temp folder
                 temp_folder = self.create_temp_folder()
                 # Retrieve file
@@ -139,8 +145,10 @@ class queue_model:
                 self.put_file_db(action[1][1], temp_folder, project_id, media_name, media_type)
                 # Remove temp folder
                 self.remove_temp_folder(temp_folder)
+                # Set project status to Ready
+                self.set_project_status_db(project_id, "Ready")
             # Get audiobook
-            elif action[0] == 'get_audiobook':
+            elif action[0] == 'get_audiobook' or action[0] == 'make_video':
                 # Set options for DB upload
                 project_id = action[1][3]
                 media_name = os.path.basename(action[1][1])
@@ -149,6 +157,8 @@ class queue_model:
                 media_type = "aiaudio" # Name identifier for audiobook
                 media_type2 = "aiaudio_clips" # Name identifier for audiobook clips
                 media_type3 = "aivideo" # Name identifier for video
+                # Set project status to processing
+                self.set_project_status_db(project_id, "Processing")
                 # Create temp folder
                 temp_folder = self.create_temp_folder()
                 # Retrieve file
@@ -169,6 +179,11 @@ class queue_model:
                 self.put_file_db(action[1][1].replace('.wav', '.mp4'), temp_folder, project_id, media_name3, media_type3)
                 # Remove temp folder
                 self.remove_temp_folder(temp_folder)
+                # Set project status to Ready
+                self.set_project_status_db(project_id, "Ready")
+            elif action[0] == 'set_project_status':
+                # Set project status
+                self.set_project_status_db(action[1][0], action[1][1])
             # Make video
             # elif action[0] == 'make_video':
             #     # Set options for DB upload
@@ -257,6 +272,15 @@ class queue_model:
         except Exception as e:
             print(f"[ERROR] Failed to retrieve file from database for project {project_id} and media type {media_type}. Error: {e}")
     
+    def set_project_status_db(self, project_id, status_string):
+        # Make POST request to http://scribe_app:8000/project/{project_id}/status/internal to set the project status
+        print(f"[QUEUE] Setting project status for project {project_id} to {status_string}...")
+        try:
+            response = self.make_request(f'http://scribe_app:8000/project/{project_id}/status/internal', method='post', data={'host_key': self.host_key, 'status_name': status_string})
+            print(response.text)
+        except Exception as e:
+            print(f"[ERROR] Failed to set project status for project {project_id} to {status_string}. Error: {e}")
+
     def create_temp_folder(self):
         # Create a random folder string of 16 characters
         print("[QUEUE] Creating temp folder...")
