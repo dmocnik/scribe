@@ -510,6 +510,32 @@ def read_media_internal(project_id: str, response: Response, host_key: str = For
 
     return Response(content=res[0], media_type="video/mp4")
 
+# get aiaudio_clips, but for internal use requiring no auth besides host key
+# this is a json file
+@media.post('/project/{project_id}/aiaudio_clips/internal')
+def read_media_internal(project_id: str, response: Response, host_key: str = Form(...)):
+    if host_key != os.getenv("HOST_KEY"):
+        response.status_code = 403
+        return "Invalid host key"
+
+    # make sure session.email owns that media
+    engine = create_engine(settings.DATABASE_URI)
+
+    stmt = select(Media.content) \
+        .join(Project, Project.id == Media.project_id) \
+        .where(and_(
+            Project.id == project_id, 
+            Media.type == 'aiaudio_clips',)
+        )    
+    with engine.connect() as conn:
+        res = conn.execute(stmt).first()
+
+    if res is None:
+        response.status_code = 404
+        return "Not Found"
+
+    return Response(content=res[0], media_type="application/json")
+
 # delete media (given media id), but for internal use requiring no auth besides host key
 @media.post("/project/{project_id}/media/{media_id}/delete/internal")
 def delete_media_internal(response: Response, project_id: str, media_id: str, host_key: str = Form(...)):

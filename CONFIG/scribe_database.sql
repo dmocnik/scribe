@@ -46,7 +46,7 @@ DROP TABLE IF EXISTS `media`;
 CREATE TABLE `media` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(64) NOT NULL,
-  `type` enum('video','transcript','aivideo','aiaudio','aisummary') NOT NULL,
+  `type` enum('video','transcript','aivideo','aiaudio','aisummary', 'aiaudio_clips') NOT NULL,
   `content` longblob NOT NULL,
   `project_id` int(11) NOT NULL,
   PRIMARY KEY (`id`),

@@ -20,11 +20,6 @@ qm = queue_model(system_user=SYSTEM_USER, system_password=SYSTEM_PASSWORD)
 """
 Example task json:
 {
-    "action": "convert_mp4_wav",
-    "parameters": ["input/sample_video.mp4", "output/audio.wav"]
-}
-
-{
     "action": "make_transcript",
     "parameters": ["sample_video.mp4", "transcript.txt", "text", "transcribe", "en", false, true, 3]
 }
@@ -37,6 +32,11 @@ Example task json:
 {
     "action": "get_audiobook",
     "parameters": ["output/summary.txt", "output/audiobook.wav", "Antoni", 3]
+}
+
+{
+    "action": "make_video",
+    "parameters": ["output/audiobook.wav", "output/new_video.mp4", "Antoni", 3]
 }
 """
 

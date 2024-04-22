@@ -14,6 +14,7 @@ RUN apt-get update && \
     gcc \
     make \
     cmake \
+    ffmpeg \
     libssl-dev \
     && \
     apt-get clean && \
