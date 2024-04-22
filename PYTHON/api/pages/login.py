@@ -90,17 +90,61 @@ def password_request_reset(response: Response, email: str = Body(embed=True)):
 
     # send email with link and code
     smtp_driver = scribe_smtp(settings.smtp_server, settings.smtp_port, settings.smtp_username, settings.password)
-    # success = smtp_driver.send_email(to=email,subject='Password Reset Request', body=f"oi here's your code: {code}")
     success = smtp_driver.send_template(to=email, subject='Password Reset Request', template='password_reset.html', data=data)
 
     # if email failed, let em know
     if not success:
         response.status_code = 400
         return
-    
-    # # print code
-    # print(code)
 
+    return 'ok'
+
+@account.post('/account/create/resend')
+def resend_code(response: Response, email: str = Body(embed=True)):
+    # connect to db
+    engine = sqlalchemy.create_engine(settings.DATABASE_URI)
+
+    # get user from matching email
+    stmt = select(User.id, User.name, User.disabled).where(User.email == email)
+    with engine.connect() as conn:
+        user_db = conn.execute(stmt).first()
+    
+    # confirm user is disabled
+    if user_db[2] == False:
+        response.status_code = 400
+        return
+
+    # generate random code
+    code = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(64))
+    # hash the code
+    code_hash = sha256_crypt.encrypt(code)
+
+    # set expiration to 15 minutes
+    expiration = datetime.utcnow() + timedelta(minutes=15)
+
+    # add code to db
+    stmt = insert(Codes).values(user_ID=user_db[0], code_hash=code_hash, code_expiry=expiration)
+    with engine.connect() as conn:
+        conn.execute(stmt)
+        conn.commit()
+
+    data = {}
+    if user_db[1] == "":
+        data["name"] = email
+    else:
+        data["name"] = user_db[1]
+    
+    data["verification_link"] = settings.FRONTEND_URL + "/verify-account?email=" + quote_plus(email) + "&code=" + code
+
+    # send an email
+    smtp_driver = scribe_smtp(settings.smtp_server, settings.smtp_port, settings.smtp_username, settings.password)
+    success = smtp_driver.send_template(to=email, subject='Welcome to Scribe! Please Confirm Your Email', template='verify_account.html', data=data)
+
+    # if email failed, let em know
+    if not success:
+        response.status_code = 400
+        return
+    
     return 'ok'
 
 # given email and login code, add session email and session code

@@ -18,9 +18,6 @@
 --
 -- Table structure for table `codes`
 --
-CREATE DATABASE IF NOT EXISTS scribe;
-
-USE scribe;
 
 DROP TABLE IF EXISTS `codes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -33,7 +30,7 @@ CREATE TABLE `codes` (
   PRIMARY KEY (`id`),
   KEY `user_ID` (`user_ID`),
   CONSTRAINT `codes_ibfk_1` FOREIGN KEY (`user_ID`) REFERENCES `user` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -49,6 +46,7 @@ CREATE TABLE `media` (
   `type` enum('video','transcript','aivideo','aiaudio','aisummary', 'aiaudio_clips') NOT NULL,
   `content` longblob NOT NULL,
   `project_id` int(11) NOT NULL,
+  `file_type` enum('mp3','wav','txt','pdf','md','mp4','mov') DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `media_project_FK` (`project_id`),
   CONSTRAINT `media_project_FK` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`)
@@ -66,10 +64,13 @@ CREATE TABLE `project` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(64) NOT NULL,
   `user_id` int(11) NOT NULL,
+  `trashed` tinyint(1) NOT NULL DEFAULT 0,
+  `status` enum('Ready','Waiting for Upload','Processing') DEFAULT NULL,
+  `last_modified` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `project_user_FK` (`user_id`),
   CONSTRAINT `project_user_FK` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -86,7 +87,7 @@ CREATE TABLE `user` (
   `name` varchar(30) DEFAULT NULL,
   `disabled` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -102,9 +103,4 @@ CREATE TABLE `user` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-03-19  0:34:49
-
-SELECT * FROM mysql.user;
-UPDATE mysql.user SET Password=PASSWORD('averystrongpassword') WHERE User='scribe_admin';
-
-PRINT 'the script has run'
+-- Dump completed on 2024-04-21 12:27:29
