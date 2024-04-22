@@ -64,7 +64,7 @@ def password_request_reset(response: Response, email: str = Body(embed=True)):
     code_hash = sha256_crypt.encrypt(code)
 
     # set expiration to 15 minutes
-    expiration = datetime.utcnow() + timedelta(minutes=15)
+    expiration = datetime.now() + timedelta(minutes=15)
 
     # get user id from matching email
     stmt = select(User.id, User.name).where(User.email == email)
@@ -120,7 +120,7 @@ def resend_code(response: Response, email: str = Body(embed=True)):
     code_hash = sha256_crypt.encrypt(code)
 
     # set expiration to 15 minutes
-    expiration = datetime.utcnow() + timedelta(minutes=15)
+    expiration = datetime.now() + timedelta(minutes=15)
 
     # add code to db
     stmt = insert(Codes).values(user_ID=user_db[0], code_hash=code_hash, code_expiry=expiration)
@@ -162,7 +162,7 @@ async def login_code(response: Response, email: str = Body(), code: str = Body()
         result = conn.execute(stmt)
         result = [x for x in result] # doesn't iterate properly w/o this :(
         matched_codes = [x for x in result if sha256_crypt.verify(code, x[0])]
-        valid_codes = [x for x in matched_codes if x[1] > datetime.utcnow()]
+        valid_codes = [x for x in matched_codes if x[1] > datetime.now()]
 
     # if no valid code exists, return bad creds
     if not len(valid_codes):
@@ -183,7 +183,7 @@ async def password_reset(response: Response, new_password: str = Body(embed=True
 
     # confirm session code is still active
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
-    stmt = select(Codes.code_hash, Codes.code_expiry).join(User, User.id == Codes.user_ID).where(and_(Codes.code_expiry > datetime.utcnow(), User.email == session_data.email))
+    stmt = select(Codes.code_hash, Codes.code_expiry).join(User, User.id == Codes.user_ID).where(and_(Codes.code_expiry > datetime.now(), User.email == session_data.email))
     with engine.connect() as conn:
         result = conn.execute(stmt)
         result = [x for x in result]
@@ -201,7 +201,7 @@ async def password_reset(response: Response, new_password: str = Body(embed=True
         conn.commit()
 
     # and expire the current code so it cannot be used again
-    stmt = (update(Codes).values(code_expiry=datetime.utcnow()).where(Codes.code_hash == matched_codes[0][0]))
+    stmt = (update(Codes).values(code_expiry=datetime.now()).where(Codes.code_hash == matched_codes[0][0]))
     with engine.connect() as conn:
         conn.execute(stmt)
         conn.commit()
@@ -288,7 +288,7 @@ async def create_account(response: Response, email: str = Body(), password: str 
     user_id = row[0]
 
     # set code expiry
-    code_expiry = datetime.utcnow() + timedelta(minutes=15)
+    code_expiry = datetime.now() + timedelta(minutes=15)
 
     # make code a hash of the hashed password
     code = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(64))
@@ -363,7 +363,7 @@ def activate_account(response: Response, email: str = Body(), code: str = Body()
     Session = Session()
 
     # get unexpired codes matching user email
-    stmt = select(Codes.code_hash).join(User, User.id == Codes.user_ID).where(and_(User.email == email, Codes.code_expiry > datetime.utcnow()))
+    stmt = select(Codes.code_hash).join(User, User.id == Codes.user_ID).where(and_(User.email == email, Codes.code_expiry > datetime.now()))
     with engine.connect() as conn:
         result = conn.execute(stmt)
         result = [x for x in result]

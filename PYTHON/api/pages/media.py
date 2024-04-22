@@ -28,7 +28,7 @@ def create_project(project_name: str = Body(embed=True), session_data: SessionDa
         user_id = conn.execute(stmt).first()[0]
 
     # make a new project object w/ project name and user_id
-    project = Project(name=project_name, user_id=user_id, status='Waiting for Upload', last_modified=datetime.utcnow())
+    project = Project(name=project_name, user_id=user_id, status='Waiting for Upload', last_modified=datetime.now())
     with Session(engine) as session:
         session.add(project)
         session.commit()
@@ -89,7 +89,7 @@ def update_project(project_id: str, response: Response, project_name: str = Body
     with Session(engine) as session:
         project = session.get(Project, project_id)
         project.name = project_name
-        project.last_modified = datetime.utcnow()
+        project.last_modified = datetime.now()
         session.commit()
 
         return project.id
@@ -529,7 +529,7 @@ def delete_media(response: Response, project_id: str, media_id: str, session_dat
         session.delete(media)
 
         project = session.get(Project, project_id)
-        project.last_modified = datetime.utcnow()
+        project.last_modified = datetime.now()
 
         session.commit()
 
@@ -720,7 +720,7 @@ def delete_media_internal(response: Response, project_id: str, media_id: str, ho
         session.delete(media)
 
         project = session.get(Project, project_id)
-        project.last_modified = datetime.utcnow()
+        project.last_modified = datetime.now()
 
         session.commit()
 
@@ -752,7 +752,7 @@ def update_project_status(project_id: str, response: Response, status_name: str 
     with Session(engine) as session:
         project = session.get(Project, project_id)
         project.status = status_name
-        project.last_modified = datetime.utcnow()
+        project.last_modified = datetime.now()
         session.commit()
 
         return project.id
