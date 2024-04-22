@@ -18,3 +18,4 @@ ffmpeg
 moviepy
 Flask
 waitress
+moviepy
