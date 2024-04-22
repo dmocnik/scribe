@@ -63,7 +63,7 @@ class Media(Base):
 
     id = mapped_column(INTEGER(11), primary_key=True)
     name = mapped_column(String(64), nullable=False)
-    type = mapped_column(Enum('video', 'transcript', 'aivideo', 'aiaudio', 'aisummary'), nullable=False)
+    type = mapped_column(Enum('video', 'transcript', 'aivideo', 'aiaudio', 'aisummary', 'aiaudio_clips'), nullable=False)
     content = mapped_column(LONGBLOB, nullable=False)
     project_id = mapped_column(INTEGER(11), nullable=False)
     file_type = mapped_column(Enum('mp3', 'wav', 'txt', 'pdf', 'md', 'mp4', 'mov'))
