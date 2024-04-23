@@ -23,9 +23,6 @@ project_columns = [ # For now we have id, name, status, and last modified
     {'name': 'last_modified', 'label': 'Last Modified', 'field': 'last_modified', 'sortable': True},
 ]
 
-def print(str):
-    ui.notification(str, timeout=0, close_button=True)
-
 async def content(client: Client): 
     async def handle_projects_selection(event: TableSelectionEventArguments): # Update the rename and delete buttons when the selection changes
         if len(projects_table.selected) == 0: # Disable the buttons if no projects are selected
@@ -162,8 +159,7 @@ async def content(client: Client):
         results = []
         for row in rows_to_restore: # Move the selected rows to the projects table, and update their status
             trashed_table.rows.remove(row)
-            async with httpx.AsyncClient() as c: #get the original 
-                
+            async with httpx.AsyncClient() as c: #get the original status of the row
                 res = await c.post(f'{API_URL}/project/read', json={'project_id': row['id']}, headers={'Cookie': app.storage.user['cookie']})
                 data = res.json()
                 row['status'] = data['status']
@@ -226,9 +222,11 @@ async def content(client: Client):
                 working.dismiss()
                 ui.notify('An error occurred. Please try again.', position='top-right', close_button=True, type='negative')
 
-    async def open_project(id, new = False):
+    async def open_project(row):
+        id = row['id']
+        status = row['status']
         open_url = f'/project?id={id}'
-        if new:
+        if status == 'Waiting for Upload':
             open_url += '&new=True'
         ui.navigate.to(open_url, new_tab=True)
         return
@@ -272,7 +270,6 @@ async def content(client: Client):
             res = await c.get(PROJECT_LIST_URL, headers={'Cookie': app.storage.user['cookie']}) #Get the projects
             if res.status_code == 200: # If the request was successful, clear the spinner and set the projects
                 data = res.json()
-                print(data)
                 projects_tab.enable()
                 trashed_tab.enable()
                 browser.clear()
@@ -307,7 +304,7 @@ async def content(client: Client):
                     #Create the projects table
                     projects_table = ui.table(columns=project_columns, rows=projects, row_key='id', selection='multiple', on_select=handle_projects_selection) \
                         .classes('w-full') \
-                        .on('row-dblclick', lambda e: open_project(e.args[1]['id']))
+                        .on('row-dblclick', lambda e: open_project(e.args[1]))
                     
                     projects_table.columns[0]['classes'] = 'hidden' # Hide the ID column
                     projects_table.columns[0]['headerClasses'] = 'hidden'
