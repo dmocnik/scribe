@@ -123,7 +123,8 @@ async def content(client, id: int, new: bool):
             async with httpx.AsyncClient() as c:
                 res = await c.post(f'{API_URL}/project/{id}/edit', headers={'Cookie': app.storage.user['cookie']}, json={'project_name': proj_name_input.value})
             if res.status_code == 200:
-                ui.notify(f'Project name changed to {proj_name.text}', type='positive', position='top-right', close_button=True)
+                ui.notify(f'Project name changed to {proj_name_input.value}', type='positive', position='top-right', close_button=True)
+                ui.page_title(proj_name_input.value)
                 editing = False
                 proj_name.set_text(proj_name_input.value)
                 proj_name.set_visibility(True)
@@ -237,6 +238,8 @@ async def content(client, id: int, new: bool):
         data = res.json()
         name = data['name']
         media = data['media']
+
+    ui.page_title(name)
 
     help_dialog = ui.dialog().props('full-width')
     with help_dialog, ui.card().style(replace='').classes('w-3/4'):

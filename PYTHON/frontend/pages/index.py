@@ -234,6 +234,8 @@ async def content(client: Client):
     # Main UI
     ui.query('.nicegui-content').classes('h-[calc(100vh-74px)]') # yuck https://github.com/zauberzeug/nicegui/discussions/2703#discussioncomment-8820280
 
+    ui.page_title('My Projects | Scribe')
+
     help_dialog = ui.dialog().props('full-width')
     with help_dialog, ui.card().style(replace='').classes('w-3/4'):
         with ui.row().classes('w-full items-center'):

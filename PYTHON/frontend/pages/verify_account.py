@@ -23,6 +23,9 @@ async def content(client: Client, email: str = None, code: str = None):
         spinner_dialog.close()
         
     ui.query('.nicegui-content').classes('p-0')
+
+    ui.page_title('Verify Account | Scribe')
+
     with ui.column().classes('w-full justify-center items-center h-screen'):
         ui.label('Verify your account!').style('font-size: 3.75rem; font-weight: 600; text-shadow: 3px 3px 5px black')
         ui.label('Check your email! We\'ve sent you a verification code.').style('font-size: 20px; text-shadow: 3px 3px 3px black')
