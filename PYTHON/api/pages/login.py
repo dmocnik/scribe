@@ -248,7 +248,7 @@ def delete_account(response: Response, password: str = Body()):
 # create account
 # TODO discuss cleaning email, bad users may try some wild injections
 @account.post('/account/create')
-async def create_account(response: Response, email: str = Body(), password: str = Body(), name: str = Body()):
+async def create_account(response: Response, email: str = Body(embed=True), password: str = Body(embed=True), name: str = Body(embed=True)):
 
     # create database engine
     engine = sqlalchemy.create_engine(settings.DATABASE_URI)
