@@ -180,14 +180,6 @@ if __name__ == "__main__":
                     print("[red][ERROR][/red]: System queue process has stopped running. Exiting...")
                     quit()
                 print(f"[gold1][INFO][/gold1]: Heartbeat check-in. Sleeping for 60 seconds...")
-                # Print the output of the processes
-                print(f"[gold1][INFO][/gold1]: Backend process output: {backend_process.stdout.read().decode()}")
-                print(f"[gold1][INFO][/gold1]: Frontend process output: {frontend_process.stdout.read().decode()}")
-                print(f"[gold1][INFO][/gold1]: System queue process output: {system_queue_process.stdout.read().decode()}")
-                # Flush the output buffer for all processes
-                backend_process.stdout.flush()
-                frontend_process.stdout.flush()
-                system_queue_process.stdout.flush()
                 time.sleep(60)
             except KeyboardInterrupt:
                 print("[gold1][INFO][/gold1]: Keyboard interrupt detected, exiting webserver cleanly...")

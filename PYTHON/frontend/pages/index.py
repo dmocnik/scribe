@@ -9,7 +9,6 @@ from datetime import datetime
 #TODO
 # Make resizing the window not funky
 # Potentially switch to single-column format with tabs on top instead of to side
-# Parse the date
 # Handle the table better when there are a lot of projects
 
 API_URL = config.API_URL
@@ -162,6 +161,7 @@ async def content(client: Client):
             async with httpx.AsyncClient() as c: #get the original status of the row
                 res = await c.post(f'{API_URL}/project/read', json={'project_id': row['id']}, headers={'Cookie': app.storage.user['cookie']})
                 data = res.json()
+                print(data)
                 row['status'] = data['status']
             projects_table.add_rows(row)
             async with httpx.AsyncClient() as c:
@@ -293,6 +293,7 @@ async def content(client: Client):
             if p['trashed'] == 0:
                 projects.append(project)
             else:
+                project['status'] = 'Trashed'
                 trashed.append(project)
 
         with browser:

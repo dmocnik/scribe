@@ -37,7 +37,7 @@ def create_project(project_name: str = Body(embed=True), session_data: SessionDa
 
 # get project info (given project id)
 @media.post('/project/read', dependencies=[Depends(cookie)])
-def get_project(response: Response, project_id: str = Body(embed=True), session_data: SessionData = Depends(verifier)):
+def get_project(response: Response, project_id = Body(embed=True), session_data: SessionData = Depends(verifier)):
 
     engine = create_engine(settings.DATABASE_URI)
 
@@ -60,8 +60,6 @@ def get_project(response: Response, project_id: str = Body(embed=True), session_
     stmt = select(Media.name, Media.id, Media.type, Media.file_type).where(Media.project_id == project_id)
     with engine.connect() as conn:
         media_dbs = conn.execute(stmt)
-
-    project["media"] = []
 
     for media_db in media_dbs:
 
@@ -113,6 +111,9 @@ def delete_project(project_id: str, response: Response, session_data: SessionDat
     # make a new project object w/ project name and user_id
     with Session(engine) as session:
         project = session.get(Project, project_id)
+        media = session.query(Media).filter_by(project_id=project_id).all()
+        for m in media:
+            session.delete(m)
         session.delete(project)
         session.commit()
 
@@ -320,8 +321,7 @@ def read_media_txt(project_id: str, response: Response, session_data: SessionDat
         .where(and_(
             User.email == session_data.email, 
             Project.id == project_id, 
-            Media.type == 'transcript',
-            Media.file_type == 'txt',)
+            Media.type == 'transcript',)
         )    
     with engine.connect() as conn:
         res = conn.execute(stmt).first()
@@ -537,7 +537,7 @@ def delete_media(response: Response, project_id: str, media_id: str, session_dat
         return 'ok'
 
 @media.post('/project/{project_id}/internal')
-def create_media_internal(response: Response, media_content: Annotated[bytes, File()], project_id: str, media_name: str = Body(), media_type: str  = Body(), file_type: str = Body(), host_key: str = Form(...)):
+def create_media_internal(response: Response, media_content: Annotated[bytes, File()], project_id, media_name: str = Body(), media_type: str  = Body(), file_type: str = Body(), host_key: str = Form(...)):
     if host_key != os.getenv("HOST_KEY"):
         response.status_code = 403
         return "Invalid host key"

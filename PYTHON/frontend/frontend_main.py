@@ -4,6 +4,7 @@ from pages import login, verify_account, reset_password, index, project
 from style import style
 from common import check_notifications
 from fastapi.responses import RedirectResponse
+import os
 
 app.add_middleware(ScribeAuthMiddleware)
 
@@ -75,5 +76,17 @@ async def _project(client: Client, id: str = None, new: bool = False):
     await style()
     await check_notifications()
     await project.content(client, id, new)
+
+async def make_temp_dir():
+    os.makedirs('PYTHON/frontend/temp', exist_ok=True)
+    await clear_temp_dir()
+
+async def clear_temp_dir():
+    print('Clearing temp directory')
+    for file in os.listdir('PYTHON/frontend/temp'):
+        os.remove(f'PYTHON/frontend/temp/{file}')
+
+ui.timer(3600, clear_temp_dir) # periodically clear temp directory (every hour)
+app.on_startup(make_temp_dir)
 
 ui.run(dark=True, title='Scribe', favicon='📝', storage_secret='this_is_a_secret', host='0.0.0.0', port=8080, show=False)
