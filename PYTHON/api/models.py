@@ -46,6 +46,9 @@ class Project(Base):
     id = mapped_column(INTEGER(11), primary_key=True)
     name = mapped_column(String(64), nullable=False)
     user_id = mapped_column(INTEGER(11), nullable=False)
+    trashed = mapped_column(TINYINT(1), nullable=False, server_default=text('0'))
+    status = mapped_column(Enum('Ready', 'Waiting for Upload', 'Processing'))
+    last_modified = mapped_column(DateTime)
 
     user: Mapped['User'] = relationship('User', back_populates='project')
     media: Mapped[List['Media']] = relationship('Media', uselist=True, back_populates='project')
@@ -60,8 +63,9 @@ class Media(Base):
 
     id = mapped_column(INTEGER(11), primary_key=True)
     name = mapped_column(String(64), nullable=False)
-    type = mapped_column(Enum('video', 'transcript', 'aivideo', 'aiaudio', 'aisummary'), nullable=False)
+    type = mapped_column(Enum('video', 'transcript', 'aivideo', 'aiaudio', 'aisummary', 'aiaudio_clips'), nullable=False)
     content = mapped_column(LONGBLOB, nullable=False)
     project_id = mapped_column(INTEGER(11), nullable=False)
+    file_type = mapped_column(Enum('mp3', 'wav', 'txt', 'pdf', 'md', 'mp4', 'mov'))
 
     project: Mapped['Project'] = relationship('Project', back_populates='media')

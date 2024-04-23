@@ -147,8 +147,11 @@ async def content():
         return RedirectResponse('/')
     
     ui.query('.nicegui-content').classes('p-0')
+
+    ui.page_title('Login | Scribe')
+
     with ui.column().classes('w-full justify-center items-center h-screen'):
-        ui.label('Welcome!').style('font-size: 3.75rem; font-weight: 600; text-shadow: 3px 3px 5px black')
+        ui.label('Welcome!').style('font-size: 3.75rem; font-weight: 700; text-shadow: 3px 3px 5px black')
         ui.label('Please sign in.').style('font-size: 20px; text-shadow: 3px 3px 3px black')
         
         with ui.card().classes('w-1/2 p-0 gap-0 flex-row flex-nowrap backdrop-blur-lg'):

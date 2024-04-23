@@ -4,7 +4,7 @@ services:
     image: mariadb:latest
     restart: unless-stopped
     container_name: scribe_db
-    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW --max-allowed-packet=1073741824
     volumes:
       - scribe_data:/var/lib/mysql
       - ./CONFIG/scribe_database.sql:/docker-entrypoint-initdb.d/scribe_database.sql
@@ -38,6 +38,9 @@ services:
       - SMTP_SERVER=${SMTP_SERVER}
       - FRONTEND_URL=${FRONTEND_URL}
       - DATABASE_CONNECTOR=${DATABASE_CONNECTOR}
+      - AI_API_KEY=${AI_API_KEY}
+      - AI_AUDIO_API_KEY=${AI_AUDIO_API_KEY}
+      - HOST_KEY=${HOST_KEY}
     volumes:
       - scribe_persist_frontend:/app/.nicegui
       - scribe_persist_backend:/app/flask_session
@@ -45,6 +48,7 @@ services:
     ports:
       - "97:8000" # Map port 97 on host to 8000 in container (FastAPI Backend)
       - "98:8080" # Map port 98 on host to 8080 in container (NiceGUI Frontend)
+      - "94:8200" # Temporarily map port 94 on host to 8200 in container (Queue system)
     links:
       - scribe_db
     healthcheck:

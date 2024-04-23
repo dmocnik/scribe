@@ -1,23 +1,18 @@
 from nicegui import ui, app, Client
 from nicegui.events import TableSelectionEventArguments
 from config import DevelopmentConfig as config
-from datetime import datetime
+from datetime import datetime, timedelta
 from common import logout
 import httpx
 
 #TODO
 # Make resizing the window not funky
 # Potentially switch to single-column format with tabs on top instead of to side
-# Parse the date
 # Handle the table better when there are a lot of projects
 
 API_URL = config.API_URL
 PROJECT_CREATE_URL = f'{API_URL}/project/create'
-PROJECT_READ_URL = f'{API_URL}/project/read'
 PROJECT_LIST_URL = f'{API_URL}/project/list'
-
-#PROJECT_EDIT_URL = f'{API_URL}/project'
-#PROJECT_DELETE_URL = f'{API_URL}'
 
 project_columns = [ # For now we have id, name, status, and last modified
     {'name': 'id', 'label': 'ID', 'field': 'id', 'sortable': False}, # Hidden
@@ -71,7 +66,7 @@ async def content(client: Client):
                 id = res.json()
             if res.status_code == 200:
                 working.dismiss()
-                date_str = datetime.now().strftime('%B %e, %Y')
+                date_str = (datetime.now() - timedelta(hours=4)).strftime('%l:%M %p, %B %e, %Y')
                 projects_table.add_rows({'id': id, 'name': name, 'status': 'Waiting for Upload', 'last_modified': date_str})
                 ui.notify(f'Project "{name}" created!', position='top-right', close_button=True, type='positive')
             else:
@@ -140,7 +135,7 @@ async def content(client: Client):
             row['status'] = 'Trashed'
             trashed_table.add_rows(row)
             async with httpx.AsyncClient() as c:
-                res = await c.post(f'{API_URL}/project/{id}/delete', headers={'Cookie': app.storage.user['cookie']})
+                res = await c.post(f'{API_URL}/project/{id}/trash', headers={'Cookie': app.storage.user['cookie']})
             results.append(res.status_code)
         if all([res == 200 for res in results]): # If all the requests were successful, dismiss the notification
             working.dismiss()
@@ -158,15 +153,30 @@ async def content(client: Client):
         num_restored = len(rows_to_restore) # Get the number of selected rows
         if num_restored == 1: # If only one row is selected, get the name
             restored_project_name = rows_to_restore[0]['name']
+        working = ui.notification('Working...', spinner=True, timeout=0)
+        results = []
         for row in rows_to_restore: # Move the selected rows to the projects table, and update their status
             trashed_table.rows.remove(row)
-            row['status'] = 'Huh?' 
+            async with httpx.AsyncClient() as c: #get the original status of the row
+                res = await c.post(f'{API_URL}/project/read', json={'project_id': row['id']}, headers={'Cookie': app.storage.user['cookie']})
+                data = res.json()
+                print(data)
+                row['status'] = data['status']
             projects_table.add_rows(row)
-        await deselect_all() # Deselect all rows & update the tables
-        if num_restored == 1: # Notify the user of the action
-            ui.notify(f'Restored "{restored_project_name}"', position='top-right', type='positive')
-        else:
-            ui.notify(f'Restored {num_restored} projects', position='top-right', type='positive')
+            async with httpx.AsyncClient() as c:
+                id = row["id"]
+                res = await c.post(f'{API_URL}/project/{id}/restore', headers={'Cookie': app.storage.user['cookie']})
+            results.append(res.status_code)
+        if all([res == 200 for res in results]):
+            working.dismiss()
+            await deselect_all() # Deselect all rows & update the tables
+            if num_restored == 1: # Notify the user of the action
+                ui.notify(f'Trashed "{restored_project_name}"', position='top-right', type='positive')
+            else:
+                ui.notify(f'Trashed {num_restored} projects', position='top-right', type='positive')
+        else: # Otherwise, display an error message
+            working.dismiss()
+            ui.notify('An error occurred. Please try again.', position='top-right', close_button=True, type='negative')
 
     async def permanently_delete_projects():
         rows_to_delete = trashed_table.selected # Get the selected rows and the number of selected rows
@@ -191,21 +201,39 @@ async def content(client: Client):
                 no_btn = ui.button('No', on_click=lambda: permanently_delete_dialog.close())
 
         answer = await permanently_delete_dialog # Wait for the dialog to close and get the answer
-        if answer == True: # If the user confirmed the deletion, delete the projects and notify the user
+        if answer == True:
+            working = ui.notification('Working...', spinner=True, timeout=0)
+            results = []
             for row in rows_to_delete:
+                async with httpx.AsyncClient() as c:
+                    id = row["id"]
+                    res = await c.post(f'{API_URL}/project/{id}/delete', headers={'Cookie': app.storage.user['cookie']})
                 trashed_table.rows.remove(row)
-            await deselect_all() # Deselect all rows & update the table
-            if num_deleted == 1:
-                ui.notify(f'Permanently deleted "{deleted_project_name}"', position='top-right', type='positive')
-            else:
-                ui.notify(f'Permanently deleted {num_deleted} projects', position='top-right', type='positive')
+                results.append(res.status_code)
+            if all([res == 200 for res in results]):
+                working.dismiss()
+                await deselect_all() 
+                if num_deleted == 1:
+                    ui.notify(f'Permanently deleted "{deleted_project_name}"', position='top-right', type='positive')
+                else:
+                    ui.notify(f'Permanently deleted {num_deleted} projects', position='top-right', type='positive')
+            else: # Otherwise, display an error message
+                working.dismiss()
+                ui.notify('An error occurred. Please try again.', position='top-right', close_button=True, type='negative')
 
-    async def open_project(name):
-        ui.navigate.to(f'/project?id=testing&new=True&name={name}', new_tab=True)
+    async def open_project(row):
+        id = row['id']
+        status = row['status']
+        open_url = f'/project?id={id}'
+        if status == 'Waiting for Upload':
+            open_url += '&new=True'
+        ui.navigate.to(open_url, new_tab=True)
         return
 
     # Main UI
     ui.query('.nicegui-content').classes('h-[calc(100vh-74px)]') # yuck https://github.com/zauberzeug/nicegui/discussions/2703#discussioncomment-8820280
+
+    ui.page_title('My Projects | Scribe')
 
     help_dialog = ui.dialog().props('full-width')
     with help_dialog, ui.card().style(replace='').classes('w-3/4'):
@@ -242,9 +270,7 @@ async def content(client: Client):
         async with httpx.AsyncClient() as c:
             res = await c.get(PROJECT_LIST_URL, headers={'Cookie': app.storage.user['cookie']}) #Get the projects
             if res.status_code == 200: # If the request was successful, clear the spinner and set the projects
-                projects = res.json()
-                for project in projects:
-                    print(project['name'], project['id'], project['media'])
+                data = res.json()
                 projects_tab.enable()
                 trashed_tab.enable()
                 browser.clear()
@@ -257,6 +283,20 @@ async def content(client: Client):
                         ui.label('Try reloading the page.')
                         return
         
+        projects = []
+        trashed = []
+        for p in data:
+            project = {}
+            project['id'] = p['id']
+            project['name'] = p['name']
+            project['status'] = p['status']
+            project['last_modified'] = (datetime.strptime(p['last_modified'], '%Y-%m-%dT%H:%M:%S') - timedelta(hours=4)).strftime('%l:%M %p, %B %e, %Y')
+            if p['trashed'] == 0:
+                projects.append(project)
+            else:
+                project['status'] = 'Trashed'
+                trashed.append(project)
+
         with browser:
             with ui.tab_panels(tabs, value=projects_tab) \
                 .props('vertical') \
@@ -266,7 +306,7 @@ async def content(client: Client):
                     #Create the projects table
                     projects_table = ui.table(columns=project_columns, rows=projects, row_key='id', selection='multiple', on_select=handle_projects_selection) \
                         .classes('w-full') \
-                        .on('row-dblclick', lambda e: open_project(e.args[1]['name']))
+                        .on('row-dblclick', lambda e: open_project(e.args[1]))
                     
                     projects_table.columns[0]['classes'] = 'hidden' # Hide the ID column
                     projects_table.columns[0]['headerClasses'] = 'hidden'
@@ -286,8 +326,8 @@ async def content(client: Client):
                             del_btn = ui.button('Delete', on_click=trash_projects, icon='delete').props('disable')
                             ren_btn = ui.button('Rename', on_click=rename_project, icon='edit').props('disable')
 
-                with ui.tab_panel(trashed_tab).classes('p-0'): #TODO do something with the trashed projects
-                    trashed_table = ui.table(columns=project_columns, rows=[], row_key='name', selection='multiple', on_select=handle_trashed_selection) \
+                with ui.tab_panel(trashed_tab).classes('p-0'):
+                    trashed_table = ui.table(columns=project_columns, rows=trashed, row_key='name', selection='multiple', on_select=handle_trashed_selection) \
                         .classes('w-full') # Create the table for the trashed projects
                     
                     trashed_table.add_slot('no-data', '''

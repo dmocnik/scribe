@@ -20,23 +20,29 @@ qm = queue_model(system_user=SYSTEM_USER, system_password=SYSTEM_PASSWORD)
 """
 Example task json:
 {
-    "action": "convert_mp4_wav",
-    "parameters": ["input/sample_video.mp4", "output/audio.wav"]
-}
-
-{
     "action": "make_transcript",
-    "parameters": ["input/sample_video.mp4", "output/transcript.txt", "text", "transcribe", "en", false, true]
+    "parameters": ["sample_video.mp4", "transcript.txt", "text", "transcribe", "en", false, true, 3]
 }
 
 {
     "action": "summarize_transcript",
-    "parameters": ["output/transcript.txt", "output/summary.txt"]
+    "parameters": ["output/transcript.txt", "output/summary.txt", 3]
 }
 
 {
     "action": "get_audiobook",
-    "parameters": ["output/summary.txt", "output/audiobook.wav", "Antoni"]
+    "parameters": ["output/summary.txt", "output/audiobook.wav", "David - British Storyteller", 3]
+}
+
+{
+    "action": "make_video",
+    "parameters": ["output/audiobook.wav", "output/new_video.mp4", "David - British Storyteller", 3]
+}
+
+# enum('Ready','Waiting for Upload','Processing')
+{
+    "action": "set_project_status",
+    "parameters": [3, "Processing"]
 }
 """
 
