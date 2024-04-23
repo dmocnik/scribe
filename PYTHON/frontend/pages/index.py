@@ -1,10 +1,9 @@
 from nicegui import ui, app, Client
 from nicegui.events import TableSelectionEventArguments
 from config import DevelopmentConfig as config
-from datetime import datetime
+from datetime import datetime, timedelta
 from common import logout
 import httpx
-from datetime import datetime
 
 #TODO
 # Make resizing the window not funky
@@ -67,7 +66,7 @@ async def content(client: Client):
                 id = res.json()
             if res.status_code == 200:
                 working.dismiss()
-                date_str = datetime.now().strftime('%B %e, %Y')
+                date_str = (datetime.now() - timedelta(hours=4)).strftime('%l:%M %p, %B %e, %Y')
                 projects_table.add_rows({'id': id, 'name': name, 'status': 'Waiting for Upload', 'last_modified': date_str})
                 ui.notify(f'Project "{name}" created!', position='top-right', close_button=True, type='positive')
             else:
@@ -291,7 +290,7 @@ async def content(client: Client):
             project['id'] = p['id']
             project['name'] = p['name']
             project['status'] = p['status']
-            project['last_modified'] = datetime.strptime(p['last_modified'], '%Y-%m-%dT%H:%M:%S').strftime('%l:%M %p, %B %e, %Y')
+            project['last_modified'] = (datetime.strptime(p['last_modified'], '%Y-%m-%dT%H:%M:%S') - timedelta(hours=4)).strftime('%l:%M %p, %B %e, %Y')
             if p['trashed'] == 0:
                 projects.append(project)
             else:
