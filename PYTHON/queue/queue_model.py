@@ -252,10 +252,11 @@ class queue_model:
             file_name = os.path.basename(file_path)
             file_full_path = os.path.join(temp_folder, file_name)
             mime_type, _ = mimetypes.guess_type(file_name)
+            file_extension = file_name.split('.')[-1]
             
             with open(file_full_path, 'rb') as f:
                 files = {'media_content': (file_name, f, mime_type)}
-                data = {'media_name': media_name, 'media_type': media_type, 'host_key': self.host_key}
+                data = {'media_name': media_name, 'media_type': media_type, 'file_type': file_extension, 'host_key': self.host_key}
                 response = self.make_request(f'http://scribe_app:8000/project/{project_id}/internal', method='post', files=files, data=data)
             
             print(response.text)
