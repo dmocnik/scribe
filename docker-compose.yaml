@@ -48,6 +48,7 @@ services:
     ports:
       - "97:8000" # Map port 97 on host to 8000 in container (FastAPI Backend)
       - "98:8080" # Map port 98 on host to 8080 in container (NiceGUI Frontend)
+      - "94:8200" # Temporarily map port 94 on host to 8200 in container (Queue system)
     links:
       - scribe_db
     healthcheck:

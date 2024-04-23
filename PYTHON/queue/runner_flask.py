@@ -31,12 +31,12 @@ Example task json:
 
 {
     "action": "get_audiobook",
-    "parameters": ["output/summary.txt", "output/audiobook.wav", "Antoni", 3]
+    "parameters": ["output/summary.txt", "output/audiobook.wav", "David - British Storyteller", 3]
 }
 
 {
     "action": "make_video",
-    "parameters": ["output/audiobook.wav", "output/new_video.mp4", "Antoni", 3]
+    "parameters": ["output/audiobook.wav", "output/new_video.mp4", "David - British Storyteller", 3]
 }
 
 # enum('Ready','Waiting for Upload','Processing')
