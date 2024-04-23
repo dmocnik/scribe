@@ -4,6 +4,7 @@ from config import DevelopmentConfig as config
 from datetime import datetime
 from common import logout
 import httpx
+from datetime import datetime
 
 #TODO
 # Make resizing the window not funky
@@ -15,15 +16,15 @@ API_URL = config.API_URL
 PROJECT_CREATE_URL = f'{API_URL}/project/create'
 PROJECT_LIST_URL = f'{API_URL}/project/list'
 
-#PROJECT_EDIT_URL = f'{API_URL}/project'
-#PROJECT_DELETE_URL = f'{API_URL}'
-
 project_columns = [ # For now we have id, name, status, and last modified
     {'name': 'id', 'label': 'ID', 'field': 'id', 'sortable': False}, # Hidden
     {'name': 'name', 'label': 'Name', 'field': 'name', 'sortable': True},
     {'name': 'status', 'label': 'Status', 'field': 'status', 'sortable': True},
     {'name': 'last_modified', 'label': 'Last Modified', 'field': 'last_modified', 'sortable': True},
 ]
+
+def print(str):
+    ui.notification(str, timeout=0, close_button=True)
 
 async def content(client: Client): 
     async def handle_projects_selection(event: TableSelectionEventArguments): # Update the rename and delete buttons when the selection changes
@@ -139,7 +140,7 @@ async def content(client: Client):
             row['status'] = 'Trashed'
             trashed_table.add_rows(row)
             async with httpx.AsyncClient() as c:
-                res = await c.post(f'{API_URL}/project/{id}/delete', headers={'Cookie': app.storage.user['cookie']})
+                res = await c.post(f'{API_URL}/project/{id}/trash', headers={'Cookie': app.storage.user['cookie']})
             results.append(res.status_code)
         if all([res == 200 for res in results]): # If all the requests were successful, dismiss the notification
             working.dismiss()
@@ -157,15 +158,30 @@ async def content(client: Client):
         num_restored = len(rows_to_restore) # Get the number of selected rows
         if num_restored == 1: # If only one row is selected, get the name
             restored_project_name = rows_to_restore[0]['name']
+        working = ui.notification('Working...', spinner=True, timeout=0)
+        results = []
         for row in rows_to_restore: # Move the selected rows to the projects table, and update their status
             trashed_table.rows.remove(row)
-            row['status'] = 'Huh?' 
+            async with httpx.AsyncClient() as c: #get the original 
+                
+                res = await c.post(f'{API_URL}/project/read', json={'project_id': row['id']}, headers={'Cookie': app.storage.user['cookie']})
+                data = res.json()
+                row['status'] = data['status']
             projects_table.add_rows(row)
-        await deselect_all() # Deselect all rows & update the tables
-        if num_restored == 1: # Notify the user of the action
-            ui.notify(f'Restored "{restored_project_name}"', position='top-right', type='positive')
-        else:
-            ui.notify(f'Restored {num_restored} projects', position='top-right', type='positive')
+            async with httpx.AsyncClient() as c:
+                id = row["id"]
+                res = await c.post(f'{API_URL}/project/{id}/restore', headers={'Cookie': app.storage.user['cookie']})
+            results.append(res.status_code)
+        if all([res == 200 for res in results]):
+            working.dismiss()
+            await deselect_all() # Deselect all rows & update the tables
+            if num_restored == 1: # Notify the user of the action
+                ui.notify(f'Trashed "{restored_project_name}"', position='top-right', type='positive')
+            else:
+                ui.notify(f'Trashed {num_restored} projects', position='top-right', type='positive')
+        else: # Otherwise, display an error message
+            working.dismiss()
+            ui.notify('An error occurred. Please try again.', position='top-right', close_button=True, type='negative')
 
     async def permanently_delete_projects():
         rows_to_delete = trashed_table.selected # Get the selected rows and the number of selected rows
@@ -190,14 +206,25 @@ async def content(client: Client):
                 no_btn = ui.button('No', on_click=lambda: permanently_delete_dialog.close())
 
         answer = await permanently_delete_dialog # Wait for the dialog to close and get the answer
-        if answer == True: # If the user confirmed the deletion, delete the projects and notify the user
+        if answer == True:
+            working = ui.notification('Working...', spinner=True, timeout=0)
+            results = []
             for row in rows_to_delete:
+                async with httpx.AsyncClient() as c:
+                    id = row["id"]
+                    res = await c.post(f'{API_URL}/project/{id}/delete', headers={'Cookie': app.storage.user['cookie']})
                 trashed_table.rows.remove(row)
-            await deselect_all() # Deselect all rows & update the table
-            if num_deleted == 1:
-                ui.notify(f'Permanently deleted "{deleted_project_name}"', position='top-right', type='positive')
-            else:
-                ui.notify(f'Permanently deleted {num_deleted} projects', position='top-right', type='positive')
+                results.append(res.status_code)
+            if all([res == 200 for res in results]):
+                working.dismiss()
+                await deselect_all() 
+                if num_deleted == 1:
+                    ui.notify(f'Permanently deleted "{deleted_project_name}"', position='top-right', type='positive')
+                else:
+                    ui.notify(f'Permanently deleted {num_deleted} projects', position='top-right', type='positive')
+            else: # Otherwise, display an error message
+                working.dismiss()
+                ui.notify('An error occurred. Please try again.', position='top-right', close_button=True, type='negative')
 
     async def open_project(id, new = False):
         open_url = f'/project?id={id}'
@@ -244,7 +271,8 @@ async def content(client: Client):
         async with httpx.AsyncClient() as c:
             res = await c.get(PROJECT_LIST_URL, headers={'Cookie': app.storage.user['cookie']}) #Get the projects
             if res.status_code == 200: # If the request was successful, clear the spinner and set the projects
-                projects = res.json()
+                data = res.json()
+                print(data)
                 projects_tab.enable()
                 trashed_tab.enable()
                 browser.clear()
@@ -257,6 +285,19 @@ async def content(client: Client):
                         ui.label('Try reloading the page.')
                         return
         
+        projects = []
+        trashed = []
+        for p in data:
+            project = {}
+            project['id'] = p['id']
+            project['name'] = p['name']
+            project['status'] = p['status']
+            project['last_modified'] = datetime.strptime(p['last_modified'], '%Y-%m-%dT%H:%M:%S').strftime('%l:%M %p, %B %e, %Y')
+            if p['trashed'] == 0:
+                projects.append(project)
+            else:
+                trashed.append(project)
+
         with browser:
             with ui.tab_panels(tabs, value=projects_tab) \
                 .props('vertical') \
@@ -286,8 +327,8 @@ async def content(client: Client):
                             del_btn = ui.button('Delete', on_click=trash_projects, icon='delete').props('disable')
                             ren_btn = ui.button('Rename', on_click=rename_project, icon='edit').props('disable')
 
-                with ui.tab_panel(trashed_tab).classes('p-0'): #TODO do something with the trashed projects
-                    trashed_table = ui.table(columns=project_columns, rows=[], row_key='name', selection='multiple', on_select=handle_trashed_selection) \
+                with ui.tab_panel(trashed_tab).classes('p-0'):
+                    trashed_table = ui.table(columns=project_columns, rows=trashed, row_key='name', selection='multiple', on_select=handle_trashed_selection) \
                         .classes('w-full') # Create the table for the trashed projects
                     
                     trashed_table.add_slot('no-data', '''

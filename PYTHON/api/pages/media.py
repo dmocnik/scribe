@@ -49,7 +49,7 @@ def get_project(response: Response, project_id: str = Body(embed=True), session_
         response.status_code = 404
         return
 
-    stmt = select(Project.id, Project.name, Project.trashed, Project.last_modified).where(Project.id == project_id)
+    stmt = select(Project.id, Project.name, Project.trashed, Project.last_modified, Project.status).where(Project.id == project_id)
     with engine.connect() as conn:
         project_db = conn.execute(stmt).first()
 
@@ -174,7 +174,7 @@ def list_projects(session_data: SessionData = Depends(verifier)):
     engine = create_engine(settings.DATABASE_URI)
 
     # get user id from session email
-    stmt = select(Project.id, Project.name, Project.trashed, Project.last_modified).join(User).where(User.email == session_data.email)
+    stmt = select(Project.id, Project.name, Project.trashed, Project.last_modified, Project.status).join(User).where(User.email == session_data.email)
     with engine.connect() as conn:
         project_dbs = conn.execute(stmt)
 
@@ -187,6 +187,7 @@ def list_projects(session_data: SessionData = Depends(verifier)):
             "id": getattr(project_db, "id"),
             "trashed": getattr(project_db, "trashed"),
             "last_modified": getattr(project_db, "last_modified"),
+            "status": getattr(project_db, "status"),
             "media": []
         }
 
